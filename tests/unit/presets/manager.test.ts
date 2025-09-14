@@ -79,7 +79,7 @@ extensions:
       expect(preset.name).toBe('txt2img_animagine_base');
       expect(preset.type).toBe('txt2img');
       expect(preset.base_settings.steps).toBe(20);
-      expect(preset.extensions.adetailer.enabled).toBe(true);
+      expect(preset.extensions?.adetailer?.enabled).toBe(true);
     });
 
     it('should handle invalid YAML', () => {
@@ -171,7 +171,7 @@ extensions:
     it('should validate txt2img preset', () => {
       const validPreset = {
         name: 'test',
-        type: 'txt2img',
+        type: 'txt2img' as const,
         base_settings: {
           steps: 20,
           cfg_scale: 7.0,
@@ -189,7 +189,7 @@ extensions:
     it('should validate img2img preset', () => {
       const validPreset = {
         name: 'test',
-        type: 'img2img',
+        type: 'img2img' as const,
         base_settings: {
           denoising_strength: 0.75,
           steps: 20,
@@ -229,7 +229,7 @@ extensions:
     it('should convert txt2img preset to API payload', () => {
       const preset = {
         name: 'test',
-        type: 'txt2img',
+        type: 'txt2img' as const,
         base_settings: {
           prompt_suffix: ', masterpiece',
           negative_prompt: 'low quality',
@@ -262,7 +262,7 @@ extensions:
     it('should handle ControlNet in preset', () => {
       const preset = {
         name: 'test',
-        type: 'txt2img',
+        type: 'txt2img' as const,
         base_settings: {
           steps: 20,
           cfg_scale: 7.0,
@@ -291,7 +291,7 @@ extensions:
     it('should merge user parameters with preset', () => {
       const preset = {
         name: 'test',
-        type: 'txt2img',
+        type: 'txt2img' as const,
         base_settings: {
           steps: 20,
           cfg_scale: 7.0,

@@ -1,0 +1,29 @@
+# Basic txt2img preset for Animagine XL models
+name: txt2img_animagine_base
+description: Basic text-to-image generation with Animagine XL model and ADetailer
+type: txt2img
+
+base_settings:
+  prompt_suffix: ", masterpiece, best quality, very aesthetic"
+  negative_prompt: "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry, artist name"
+  steps: 28
+  cfg_scale: 5.0
+  width: 1024
+  height: 1024
+  sampler_name: "DPM++ 2M"
+  scheduler: "Karras"
+  batch_size: 1
+  seed: -1
+  model: "animagineXL40_v40"
+  clip_skip: 2
+
+extensions:
+  adetailer:
+    enabled: true
+    models:
+      - face_yolov8n.pt
+    confidence: 0.3
+    mask_blur: 4
+    dilate_erode: 4
+    inpaint_only_masked: true
+    inpaint_padding: 32
