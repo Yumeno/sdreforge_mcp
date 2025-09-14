@@ -69,6 +69,22 @@ Mac/Linux: `~/.config/Claude/claude_desktop_config.json`
 
 以下の設定を`claude_desktop_config.json`に追加します：
 
+#### 方法1: npxを使用（推奨）
+```json
+{
+  "mcpServers": {
+    "sdreforge": {
+      "command": "npx",
+      "args": ["-y", "tsx", "C:\\Users\\vz7a-\\Desktop\\kamuicode\\kamuicode_20250811\\sdreforge_mcp\\src\\index.ts"],
+      "env": {
+        "SD_WEBUI_URL": "http://192.168.91.2:7863"
+      }
+    }
+  }
+}
+```
+
+#### 方法2: ビルド済みファイルを使用
 ```json
 {
   "mcpServers": {
@@ -84,7 +100,7 @@ Mac/Linux: `~/.config/Claude/claude_desktop_config.json`
 ```
 
 #### パスをご自身の環境に合わせて変更してください：
-- `args`のパス: プロジェクトの`dist/index.js`へのフルパス
+- `args`のパス: プロジェクトの`src/index.ts`または`dist/index.js`へのフルパス
 - `SD_WEBUI_URL`: お使いのSD WebUI ReforgeサーバーのURL
 
 ### 3. 複数サーバーがある場合の設定例
@@ -93,13 +109,13 @@ Mac/Linux: `~/.config/Claude/claude_desktop_config.json`
 {
   "mcpServers": {
     "sdreforge": {
-      "command": "node",
-      "args": ["C:\\Users\\vz7a-\\Desktop\\kamuicode\\kamuicode_20250811\\sdreforge_mcp\\dist\\index.js"],
+      "command": "npx",
+      "args": ["-y", "tsx", "C:\\Users\\vz7a-\\Desktop\\kamuicode\\kamuicode_20250811\\sdreforge_mcp\\src\\index.ts"],
       "env": {
         "SD_WEBUI_URL": "http://192.168.91.2:7863"
       }
     },
-    "other-server": {
+    "filesystem": {
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-filesystem", "C:\\Users\\vz7a-\\Desktop"],
       "env": {}
@@ -122,9 +138,16 @@ Mac/Linux: `~/.config/Claude/claude_desktop_config.json`
 
 **ツールが表示されない場合：**
 - パスが正しいか確認（バックスラッシュをエスケープ `\\`）
-- `npm run build`を実行して`dist`フォルダが作成されているか確認
-- SD WebUI Reforgeが起動しているか確認
+- 方法1（npx）の場合：`tsx`がインストールされているか確認
+- 方法2（node）の場合：`npm run build`を実行して`dist`フォルダが作成されているか確認
+- SD WebUI Reforgeが起動しているか確認（`--api`フラグ必須）
 - Claude Codeのログを確認：`%APPDATA%\Claude\logs`
+
+**SD WebUI Reforgeの起動方法：**
+```bash
+# APIモードで起動（必須）
+./webui.bat --api --listen
+```
 
 ## ⚙️ 設定
 
