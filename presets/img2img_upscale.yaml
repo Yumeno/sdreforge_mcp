@@ -1,0 +1,66 @@
+# Image Upscaling with Enhancement Preset
+# Optimized for upscaling images with quality enhancement
+# Best for: Enlarging images, improving quality, restoring details
+
+name: img2img_upscale
+type: img2img
+description: "Upscale images with AI enhancement"
+
+base_settings:
+  # Model: Realistic for detail preservation
+  checkpoint: "realisticVisionV60B1_v51VAE"  # Will fall back to default if not available
+
+  # Sampler for quality
+  sampler_name: "DPM++ 2M SDE"
+  scheduler: "Karras"
+
+  # Generation parameters
+  steps: 20
+  cfg_scale: 4
+  width: -1  # Will be set by upscaler
+  height: -1  # Will be set by upscaler
+
+  # Low denoising to preserve original
+  denoising_strength: 0.25
+
+  # Seed (-1 for random)
+  seed: -1
+
+  # Batch settings
+  batch_size: 1
+  n_iter: 1
+
+  # CLIP settings
+  clip_skip: 1
+
+  # img2img specific
+  resize_mode: 0  # Just resize
+  inpainting_fill: 1  # Original
+
+prompt_template:
+  positive_prefix: "high quality, detailed, sharp"
+  positive_suffix: "8k, uhd, high resolution, enhanced details"
+  negative: "blurry, pixelated, low quality, artifacts, noise, compression artifacts, jpeg artifacts"
+
+# Optional extensions
+extensions:
+  # Face restoration for portraits
+  adetailer:
+    enabled: true
+    models:
+      - model: "face_yolov8n.pt"
+        prompt: "detailed face, sharp features, high quality"
+        confidence: 0.3
+        denoising_strength: 0.2
+
+  # Essential for upscaling
+  hires_fix:
+    enabled: true
+    upscaler: "4x-UltraSharp"
+    upscale_by: 2
+    denoising_strength: 0.25
+    steps: 20
+
+  # Can use for structure preservation
+  controlnet:
+    enabled: false

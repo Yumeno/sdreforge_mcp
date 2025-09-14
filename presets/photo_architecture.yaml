@@ -1,0 +1,62 @@
+# Architecture Photography Preset
+# Optimized for architectural and interior photography
+# Best for: Buildings, interiors, real estate, urban photography
+
+name: photo_architecture
+type: txt2img
+description: "Architecture and interior photography with precise lines and lighting"
+
+base_settings:
+  # Model: Realistic model for architecture
+  checkpoint: "realisticVisionV60B1_v51VAE"  # Will fall back to default if not available
+
+  # Sampler for sharp details
+  sampler_name: "DPM++ 2M"
+  scheduler: "Karras"
+
+  # Generation parameters
+  steps: 30
+  cfg_scale: 6.5
+  width: 1152
+  height: 896  # Common architectural ratio
+
+  # Seed (-1 for random)
+  seed: -1
+
+  # Batch settings
+  batch_size: 1
+  n_iter: 1
+
+  # Quality settings
+  enable_hr: true
+  denoising_strength: 0.35
+
+  # CLIP settings
+  clip_skip: 1
+
+prompt_template:
+  positive_prefix: "architectural photography, professional architecture photo, tilt-shift, wide angle lens"
+  positive_suffix: "straight lines, perfect perspective, dramatic lighting, high detail, sharp focus, professional photograph"
+  negative: "people, curved lines, distortion, lens distortion, fisheye, blurry, anime, cartoon, painting, sketch, drawing, worst quality, low quality, normal quality, text, watermark, signature"
+
+# Optional extensions
+extensions:
+  # No face detection for architecture
+  adetailer:
+    enabled: false
+
+  # Hires Fix for crisp details
+  hires_fix:
+    enabled: true
+    upscaler: "ESRGAN_4x"
+    upscale_by: 1.5
+    denoising_strength: 0.3
+    steps: 20
+
+  # ControlNet can help with perspective
+  controlnet:
+    enabled: false
+
+  # Can use for interior/exterior separation
+  regional_prompter:
+    enabled: false

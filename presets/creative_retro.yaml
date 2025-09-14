@@ -1,0 +1,54 @@
+# Retro/Vintage Style Preset
+# Optimized for retro and vintage style artwork
+# Best for: 80s aesthetic, vintage posters, retro futurism, nostalgic art
+
+name: creative_retro
+type: txt2img
+description: "Retro and vintage style art with nostalgic aesthetics"
+
+base_settings:
+  # Model: General purpose
+  checkpoint: "dreamshaper_8"  # Will fall back to default if not available
+
+  # Sampler for stylized art
+  sampler_name: "Euler a"
+  scheduler: "Simple"
+
+  # Generation parameters
+  steps: 20
+  cfg_scale: 8
+  width: 1024
+  height: 1024
+
+  # Seed (-1 for random)
+  seed: -1
+
+  # Batch settings
+  batch_size: 1
+  n_iter: 1
+
+  # Quality settings
+  enable_hr: false
+  denoising_strength: 0.45
+
+  # CLIP settings
+  clip_skip: 1
+
+prompt_template:
+  positive_prefix: "retro style, vintage, 1980s style, retrowave, synthwave, nostalgic"
+  positive_suffix: "poster art, bold colors, geometric shapes, vintage color palette, stylized, artistic"
+  negative: "modern, contemporary, photorealistic, 3d render, worst quality, low quality, normal quality, lowres, blurry, text, watermark, signature"
+
+# Optional extensions
+extensions:
+  # Minimal processing for stylized look
+  adetailer:
+    enabled: false
+
+  # Keep the retro aesthetic clean
+  hires_fix:
+    enabled: false
+
+  # Can use for color adjustments
+  dynamic_prompts:
+    enabled: false

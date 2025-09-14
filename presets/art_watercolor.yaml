@@ -1,0 +1,58 @@
+# Watercolor Painting Style Preset
+# Optimized for creating watercolor painting style artwork
+# Best for: Artistic illustrations, soft landscapes, dreamy portraits
+
+name: art_watercolor
+type: txt2img
+description: "Watercolor painting style with fluid colors and soft edges"
+
+base_settings:
+  # Model: General purpose model works well with style prompts
+  checkpoint: "majicmixRealistic_v7"  # Will fall back to default if not available
+
+  # Sampler for artistic style
+  sampler_name: "Euler a"
+  scheduler: "Simple"
+
+  # Generation parameters
+  steps: 20
+  cfg_scale: 8.5
+  width: 1024
+  height: 1024
+
+  # Seed (-1 for random)
+  seed: -1
+
+  # Batch settings
+  batch_size: 1
+  n_iter: 1
+
+  # Quality settings
+  enable_hr: false
+  denoising_strength: 0.45
+
+  # CLIP settings
+  clip_skip: 1
+
+prompt_template:
+  positive_prefix: "watercolor painting, watercolor, aquarelle, water color, watercolour, transparent watercolor"
+  positive_suffix: "soft edges, paint drips, paint splatter, artistic, traditional media, paper texture"
+  negative: "photo, digital art, 3d render, anime, cartoon, black and white, monochrome, bad art, bad painting, worst quality, low quality, normal quality, lowres, simple background, text, watermark, signature"
+
+# Optional extensions
+extensions:
+  # Minimal ADetailer for artistic style
+  adetailer:
+    enabled: false
+
+  # ControlNet for composition guidance (optional)
+  controlnet:
+    enabled: false
+
+  # Style-specific settings
+  regional_prompter:
+    enabled: false
+
+  # Keep it simple for watercolor effect
+  hires_fix:
+    enabled: false

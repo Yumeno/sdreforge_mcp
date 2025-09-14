@@ -1,0 +1,54 @@
+# Logo/Icon Generation Preset
+# Optimized for creating logos and icons
+# Best for: Company logos, app icons, brand symbols
+
+name: practical_logo
+type: txt2img
+description: "Logo and icon generation with clean, scalable designs"
+
+base_settings:
+  # Model: General purpose
+  checkpoint: "v1-5-pruned-emaonly"  # Will fall back to default if not available
+
+  # Sampler for clean graphics
+  sampler_name: "Euler a"
+  scheduler: "Simple"
+
+  # Generation parameters
+  steps: 20
+  cfg_scale: 10
+  width: 512
+  height: 512  # Square for logos
+
+  # Seed (-1 for random)
+  seed: -1
+
+  # Batch settings
+  batch_size: 1
+  n_iter: 1
+
+  # Quality settings
+  enable_hr: false
+  denoising_strength: 0.3
+
+  # CLIP settings
+  clip_skip: 1
+
+prompt_template:
+  positive_prefix: "logo design, vector graphics, simple, minimalist, professional logo, icon"
+  positive_suffix: "clean design, scalable, white background, centered, high contrast, graphic design"
+  negative: "photo, realistic, 3d render, complex, detailed, busy, cluttered, text, watermark, signature, gradient, shadow, photorealistic, worst quality, low quality"
+
+# Optional extensions
+extensions:
+  # No face detection for logos
+  adetailer:
+    enabled: false
+
+  # Clean vector-like output
+  hires_fix:
+    enabled: false
+
+  # Simple is better for logos
+  dynamic_prompts:
+    enabled: false

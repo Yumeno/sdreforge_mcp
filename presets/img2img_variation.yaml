@@ -1,0 +1,66 @@
+# Image Variation Preset
+# Optimized for creating variations of existing images
+# Best for: Alternative versions, slight modifications, creative variations
+
+name: img2img_variation
+type: img2img
+description: "Create variations of existing images while maintaining core elements"
+
+base_settings:
+  # Model: General purpose
+  checkpoint: "dreamshaper_8"  # Will fall back to default if not available
+
+  # Sampler for variations
+  sampler_name: "DPM++ 2M"
+  scheduler: "Karras"
+
+  # Generation parameters
+  steps: 25
+  cfg_scale: 6
+  width: -1  # Use input image size
+  height: -1  # Use input image size
+
+  # Moderate denoising for variations
+  denoising_strength: 0.45
+
+  # Seed (-1 for random)
+  seed: -1
+
+  # Batch settings for multiple variations
+  batch_size: 2
+  n_iter: 1
+
+  # CLIP settings
+  clip_skip: 1
+
+  # img2img specific
+  resize_mode: 0  # Just resize
+  inpainting_fill: 1  # Original
+
+prompt_template:
+  positive_prefix: ""  # Use original prompt
+  positive_suffix: "variation, alternative version, creative interpretation"
+  negative: "identical, exact copy, worst quality, low quality, distorted, deformed"
+
+# Optional extensions
+extensions:
+  # Preserve important features
+  adetailer:
+    enabled: true
+    models:
+      - model: "face_yolov8n.pt"
+        prompt: "similar face, maintain features"
+        confidence: 0.3
+        denoising_strength: 0.3
+
+  # Can use to maintain composition
+  controlnet:
+    enabled: false
+
+  # No upscaling for variations
+  hires_fix:
+    enabled: false
+
+  # Enable for more variety
+  dynamic_prompts:
+    enabled: false
