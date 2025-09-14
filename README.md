@@ -21,9 +21,16 @@ MCP (Model Context Protocol) server for SD WebUI Reforge integration with Claude
   - 単体テスト: 27個
   - 統合テスト: 実サーバー接続確認済み
 
-### 開発中 🚧
-- **MCPサーバー基礎実装** - Phase 1
-- **20種類のプリセット作成** - Phase 2
+- **MCPサーバー** - MCP仕様準拠のサーバー実装
+  - 動的ツール生成
+  - リクエスト/レスポンスハンドリング
+  - 自動画像保存機能
+- **20種類のデフォルトプリセット** - 様々なユースケースに対応
+  - アーティスティックスタイル（5種）
+  - フォトエンハンスメント（4種）
+  - クリエイティブエフェクト（4種）
+  - 実用的ユースケース（4種）
+  - Image-to-Image（3種）
 
 ## 📋 特徴
 
@@ -43,10 +50,81 @@ cd sdreforge_mcp
 # 依存関係をインストール
 npm install
 
+# ビルド
+npm run build
+
 # 環境設定ファイルを作成
 cp .env.example .env.local
 # .env.localを編集してSD WebUIのURLを設定
 ```
+
+## 🔧 Claude Codeへの設定
+
+### 1. Claude Code設定ファイルの作成
+
+Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+Mac/Linux: `~/.config/Claude/claude_desktop_config.json`
+
+### 2. MCPサーバー設定の追加
+
+以下の設定を`claude_desktop_config.json`に追加します：
+
+```json
+{
+  "mcpServers": {
+    "sdreforge": {
+      "command": "node",
+      "args": ["C:\\Users\\vz7a-\\Desktop\\kamuicode\\kamuicode_20250811\\sdreforge_mcp\\dist\\index.js"],
+      "env": {
+        "SD_WEBUI_URL": "http://192.168.91.2:7863"
+      }
+    }
+  }
+}
+```
+
+#### パスをご自身の環境に合わせて変更してください：
+- `args`のパス: プロジェクトの`dist/index.js`へのフルパス
+- `SD_WEBUI_URL`: お使いのSD WebUI ReforgeサーバーのURL
+
+### 3. 複数サーバーがある場合の設定例
+
+```json
+{
+  "mcpServers": {
+    "sdreforge": {
+      "command": "node",
+      "args": ["C:\\Users\\vz7a-\\Desktop\\kamuicode\\kamuicode_20250811\\sdreforge_mcp\\dist\\index.js"],
+      "env": {
+        "SD_WEBUI_URL": "http://192.168.91.2:7863"
+      }
+    },
+    "other-server": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "C:\\Users\\vz7a-\\Desktop"],
+      "env": {}
+    }
+  }
+}
+```
+
+### 4. 設定の確認
+
+1. Claude Codeを再起動
+2. 新しい会話を開始
+3. 以下のコマンドでツールが利用可能か確認：
+   ```
+   利用可能なツールを教えて
+   ```
+4. `sdreforge_`で始まるツールが表示されれば成功です
+
+### トラブルシューティング
+
+**ツールが表示されない場合：**
+- パスが正しいか確認（バックスラッシュをエスケープ `\\`）
+- `npm run build`を実行して`dist`フォルダが作成されているか確認
+- SD WebUI Reforgeが起動しているか確認
+- Claude Codeのログを確認：`%APPDATA%\Claude\logs`
 
 ## ⚙️ 設定
 
