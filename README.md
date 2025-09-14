@@ -75,9 +75,9 @@ Mac/Linux: `~/.config/Claude/claude_desktop_config.json`
   "mcpServers": {
     "sdreforge": {
       "command": "npx",
-      "args": ["-y", "tsx", "C:\\Users\\vz7a-\\Desktop\\kamuicode\\kamuicode_20250811\\sdreforge_mcp\\src\\index.ts"],
+      "args": ["-y", "tsx", "C:\\path\\to\\sdreforge_mcp\\src\\index.ts"],
       "env": {
-        "SD_WEBUI_URL": "http://192.168.91.2:7863"
+        "SD_WEBUI_URL": "http://localhost:7860"
       }
     }
   }
@@ -90,9 +90,9 @@ Mac/Linux: `~/.config/Claude/claude_desktop_config.json`
   "mcpServers": {
     "sdreforge": {
       "command": "node",
-      "args": ["C:\\Users\\vz7a-\\Desktop\\kamuicode\\kamuicode_20250811\\sdreforge_mcp\\dist\\index.js"],
+      "args": ["C:\\path\\to\\sdreforge_mcp\\dist\\index.js"],
       "env": {
-        "SD_WEBUI_URL": "http://192.168.91.2:7863"
+        "SD_WEBUI_URL": "http://localhost:7860"
       }
     }
   }
@@ -110,14 +110,14 @@ Mac/Linux: `~/.config/Claude/claude_desktop_config.json`
   "mcpServers": {
     "sdreforge": {
       "command": "npx",
-      "args": ["-y", "tsx", "C:\\Users\\vz7a-\\Desktop\\kamuicode\\kamuicode_20250811\\sdreforge_mcp\\src\\index.ts"],
+      "args": ["-y", "tsx", "C:\\path\\to\\sdreforge_mcp\\src\\index.ts"],
       "env": {
-        "SD_WEBUI_URL": "http://192.168.91.2:7863"
+        "SD_WEBUI_URL": "http://localhost:7860"
       }
     },
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "C:\\Users\\vz7a-\\Desktop"],
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "C:\\path\\to\\workspace"],
       "env": {}
     }
   }
