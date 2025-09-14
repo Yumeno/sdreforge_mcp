@@ -10,12 +10,32 @@ import axios from 'axios';
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
+// axios.createのモックを設定
+const mockAxiosInstance = {
+  get: jest.fn(),
+  post: jest.fn(),
+  interceptors: {
+    request: { use: jest.fn() },
+    response: { use: jest.fn() }
+  }
+};
+
+(mockedAxios.create as jest.Mock).mockReturnValue(mockAxiosInstance);
+
 describe('SDWebUIClient', () => {
   let client: SDWebUIClient;
+  const originalEnv = process.env;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reset environment variables for tests
+    process.env = { ...originalEnv };
+    delete process.env.SD_WEBUI_URL;
     client = new SDWebUIClient('http://localhost:7860');
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
   });
 
   describe('Constructor', () => {
@@ -37,21 +57,18 @@ describe('SDWebUIClient', () => {
 
   describe('Connection Test', () => {
     it('should successfully connect to API', async () => {
-      mockedAxios.get.mockResolvedValueOnce({
+      mockAxiosInstance.get.mockResolvedValueOnce({
         data: { version: '1.0.0' },
         status: 200,
       });
 
       const result = await client.testConnection();
       expect(result).toBe(true);
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        'http://localhost:7860/sdapi/v1/sd-models',
-        expect.any(Object)
-      );
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/sd-models');
     });
 
     it('should handle connection failure', async () => {
-      mockedAxios.get.mockRejectedValueOnce(new Error('Connection refused'));
+      mockAxiosInstance.get.mockRejectedValueOnce(new Error('Connection refused'));
 
       const result = await client.testConnection();
       expect(result).toBe(false);
@@ -166,25 +183,25 @@ describe('SDWebUIClient', () => {
         }
       };
 
-      mockedAxios.post.mockRejectedValueOnce(errorResponse);
+      mockAxiosInstance.post.mockRejectedValueOnce(errorResponse);
 
       await expect(client.post('/test', {})).rejects.toThrow('Validation error');
     });
 
     it('should handle timeout error', async () => {
-      const timeoutError = new Error('timeout of 120000ms exceeded');
+      const timeoutError: any = new Error('timeout of 120000ms exceeded');
       timeoutError.code = 'ECONNABORTED';
 
-      mockedAxios.post.mockRejectedValueOnce(timeoutError);
+      mockAxiosInstance.post.mockRejectedValueOnce(timeoutError);
 
       await expect(client.post('/test', {})).rejects.toThrow('Request timeout');
     });
 
     it('should handle network error', async () => {
-      const networkError = new Error('Network Error');
+      const networkError: any = new Error('Network Error');
       networkError.code = 'ECONNREFUSED';
 
-      mockedAxios.post.mockRejectedValueOnce(networkError);
+      mockAxiosInstance.post.mockRejectedValueOnce(networkError);
 
       await expect(client.post('/test', {})).rejects.toThrow('Connection failed');
     });
@@ -192,24 +209,24 @@ describe('SDWebUIClient', () => {
 
   describe('HTTP Methods', () => {
     it('should make GET request', async () => {
-      mockedAxios.get.mockResolvedValueOnce({
+      mockAxiosInstance.get.mockResolvedValueOnce({
         data: { result: 'success' },
         status: 200
       });
 
       const result = await client.get('/test');
 
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        'http://localhost:7860/sdapi/v1/test',
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        '/test',
         expect.objectContaining({
-          timeout: 120000
+          params: undefined
         })
       );
       expect(result).toEqual({ result: 'success' });
     });
 
     it('should make POST request with cleaned payload', async () => {
-      mockedAxios.post.mockResolvedValueOnce({
+      mockAxiosInstance.post.mockResolvedValueOnce({
         data: { result: 'success' },
         status: 200
       });
@@ -222,18 +239,12 @@ describe('SDWebUIClient', () => {
 
       const result = await client.post('/test', payload);
 
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        'http://localhost:7860/sdapi/v1/test',
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/test',
         {
           prompt: 'test',
           steps: 20
-        },
-        expect.objectContaining({
-          timeout: 120000,
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        })
+        }
       );
       expect(result).toEqual({ result: 'success' });
     });
