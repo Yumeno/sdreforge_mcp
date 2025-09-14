@@ -1,0 +1,195 @@
+# Utility Templates
+# PNG Info, Extras, その他のユーティリティ用テンプレート
+
+# ==========================================
+# PNG Info - 画像からメタデータ抽出
+# ==========================================
+---
+name: png_info_extractor
+description: Extract generation parameters from PNG images
+type: png-info
+
+settings:
+  image: ""  # base64 encoded image or file path
+
+# ==========================================
+# Extras - 画像後処理
+# ==========================================
+---
+name: extras_upscale
+description: Upscale and enhance existing images
+type: extras-single-image
+
+settings:
+  image: ""  # base64 encoded image
+
+  # アップスケール設定
+  resize_mode: 0  # 0=Scale by, 1=Scale to
+  upscaling_resize: 2  # アップスケール倍率
+  upscaling_resize_w: 1024  # 固定幅（resize_mode=1の場合）
+  upscaling_resize_h: 1024  # 固定高さ（resize_mode=1の場合）
+  upscaling_crop: true  # クロップ有効化
+
+  # アップスケーラー設定（最大2つ）
+  upscaler_1: "R-ESRGAN 4x+"  # 1つ目のアップスケーラー
+  upscaler_2: "None"  # 2つ目のアップスケーラー
+  extras_upscaler_2_visibility: 0  # 2つ目のアップスケーラーの強度
+
+  # GFPGAN（顔修復）
+  gfpgan_visibility: 0
+
+  # CodeFormer（顔修復）
+  codeformer_visibility: 0
+  codeformer_weight: 0.5
+
+---
+name: extras_batch
+description: Batch process multiple images
+type: extras-batch-images
+
+settings:
+  images: []  # base64 encoded images array
+
+  # バッチ処理共通設定
+  resize_mode: 0
+  upscaling_resize: 2
+  upscaling_resize_w: 1024
+  upscaling_resize_h: 1024
+  upscaling_crop: true
+  upscaler_1: "R-ESRGAN 4x+"
+  upscaler_2: "None"
+  extras_upscaler_2_visibility: 0
+  gfpgan_visibility: 0
+  codeformer_visibility: 0
+  codeformer_weight: 0.5
+
+  # バッチ固有設定
+  batch_size: 1
+
+# ==========================================
+# Interrogate - 画像からプロンプト生成
+# ==========================================
+---
+name: interrogate_clip
+description: Generate prompt from image using CLIP
+type: interrogate
+
+settings:
+  image: ""  # base64 encoded image
+  model: "clip"  # clip or deepbooru
+
+  # CLIP設定
+  clip_skip_categories: []  # スキップするカテゴリ
+
+  # DeepBooru設定（model="deepbooru"の場合）
+  deepbooru_threshold: 0.5
+
+# ==========================================
+# Progress - 生成進行状況確認
+# ==========================================
+---
+name: progress_check
+description: Check current generation progress
+type: progress
+
+settings:
+  skip_current_image: false  # 現在の画像をスキップ
+
+# ==========================================
+# Options - 設定の取得と変更
+# ==========================================
+---
+name: options_get
+description: Get current SD WebUI options
+type: options-get
+
+settings: {}
+
+---
+name: options_set
+description: Set SD WebUI options
+type: options-set
+
+settings:
+  sd_model_checkpoint: ""  # モデル変更
+  sd_vae: ""  # VAE変更
+  sd_hypernetwork: ""  # Hypernetwork変更
+  sd_hypernetwork_strength: 1.0
+  CLIP_stop_at_last_layers: 2  # CLIP skip
+  eta_noise_seed_delta: 0
+  samples_save: true  # 画像保存
+  samples_format: "png"  # 保存形式
+  samples_filename_pattern: ""  # ファイル名パターン
+  save_images_add_number: true
+  grid_save: true
+  grid_format: "png"
+  grid_extended_filename: false
+  grid_only_if_multiple: true
+  grid_prevent_empty_spots: false
+  n_rows: -1
+  enable_pnginfo: true  # PNGメタデータ保存
+  save_txt: false
+  save_images_before_face_restoration: false
+  save_images_before_highres_fix: false
+  save_images_before_color_correction: false
+  save_mask: false
+  save_mask_composite: false
+  jpeg_quality: 80
+  webp_lossless: false
+  export_for_4chan: true
+  img_downscale_threshold: 4.0
+  target_side_length: 4000
+  img_max_size_mp: 200
+  use_original_name_batch: true
+  use_upscaler_name_as_suffix: false
+  save_selected_only: true
+  save_init_img: false
+
+# ==========================================
+# Models - モデル管理
+# ==========================================
+---
+name: models_list
+description: List available models
+type: models
+
+settings:
+  type: "checkpoints"  # checkpoints, vae, lora, hypernetworks, embeddings
+
+---
+name: refresh_models
+description: Refresh model lists
+type: refresh
+
+settings:
+  component: "checkpoints"  # checkpoints, vae, lora, hypernetworks, embeddings, all
+
+# ==========================================
+# Samplers - サンプラー情報
+# ==========================================
+---
+name: samplers_list
+description: List available samplers
+type: samplers
+
+settings: {}
+
+# ==========================================
+# Memory - メモリ管理
+# ==========================================
+---
+name: memory_cleanup
+description: Free up GPU memory
+type: unload-checkpoint
+
+settings: {}
+
+# ==========================================
+# 将来のTODO - 追加実装予定
+# ==========================================
+# - img2img sketch
+# - inpaint
+# - inpaint sketch
+# - outpaint variations
+# - Scripts (X/Y/Z plot, etc.)
+# - Extension-specific utilities

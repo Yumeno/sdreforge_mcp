@@ -21,9 +21,11 @@ extensions:
   adetailer:
     enabled: true
     models:
-      - face_yolov8n.pt
-    confidence: 0.3
-    mask_blur: 4
-    dilate_erode: 4
-    inpaint_only_masked: true
-    inpaint_padding: 32
+      - model: face_yolov8n.pt
+        prompt: "detailed face, beautiful eyes"
+        negative_prompt: ""
+        confidence: 0.3
+        mask_blur: 4
+        dilate_erode: 4
+        inpaint_only_masked: true
+        inpaint_padding: 32

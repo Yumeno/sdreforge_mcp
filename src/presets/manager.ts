@@ -112,13 +112,21 @@ export class PresetManager {
    * Convert preset to API payload
    */
   presetToPayload(preset: Preset, userParams: Record<string, any>): any {
+    // Handle utility presets differently
+    if (preset.settings) {
+      return {
+        ...preset.settings,
+        ...userParams
+      };
+    }
+
     const basePayload: any = {
       ...preset.base_settings,
       ...userParams
     };
 
     // Apply prompt suffix if present
-    if (preset.base_settings.prompt_suffix && userParams.prompt) {
+    if (preset.base_settings?.prompt_suffix && userParams.prompt) {
       basePayload.prompt = userParams.prompt + preset.base_settings.prompt_suffix;
     }
 
@@ -141,33 +149,41 @@ export class PresetManager {
     const scripts: any = {};
 
     // ADetailer
-    if (extensions.adetailer?.enabled) {
+    if (extensions.adetailer?.enabled && extensions.adetailer.models) {
       scripts.ADetailer = {
-        args: [{
-          ad_model: extensions.adetailer.models?.[0] || 'face_yolov8n.pt',
-          ad_confidence: extensions.adetailer.confidence || 0.3,
-          ad_mask_blur: extensions.adetailer.mask_blur || 4,
-          ad_dilate_erode: extensions.adetailer.dilate_erode || 4,
-          ad_inpaint_only_masked: extensions.adetailer.inpaint_only_masked !== false,
-          ad_inpaint_padding: extensions.adetailer.inpaint_padding || 32,
-          ad_use_checkpoint: extensions.adetailer.use_separate_checkpoint || false,
-          ad_checkpoint: extensions.adetailer.checkpoint || null
-        }]
+        args: extensions.adetailer.models.map(model => ({
+          ad_model: model.model || 'face_yolov8n.pt',
+          ad_prompt: model.prompt || '',
+          ad_negative_prompt: model.negative_prompt || '',
+          ad_confidence: model.confidence || 0.3,
+          ad_mask_blur: model.mask_blur || 4,
+          ad_dilate_erode: model.dilate_erode || 4,
+          ad_x_offset: model.x_offset || 0,
+          ad_y_offset: model.y_offset || 0,
+          ad_mask_merge_invert: model.mask_merge_invert || 'None',
+          ad_mask_preprocessor: model.mask_preprocessor || 'None',
+          ad_inpaint_only_masked: model.inpaint_only_masked !== false,
+          ad_inpaint_padding: model.inpaint_padding || 32,
+          ad_use_inpaint_width_height: model.use_separate_width || false,
+          ad_inpaint_width: model.width || 512,
+          ad_inpaint_height: model.height || 512,
+          ad_use_cfg_scale: model.use_separate_cfg_scale || false,
+          ad_cfg_scale: model.cfg_scale || 7.0,
+          ad_use_steps: model.use_separate_steps || false,
+          ad_steps: model.steps || 28,
+          ad_use_checkpoint: model.use_separate_checkpoint || false,
+          ad_checkpoint: model.checkpoint || '',
+          ad_use_vae: model.use_separate_vae || false,
+          ad_vae: model.vae || '',
+          ad_use_sampler: model.use_separate_sampler || false,
+          ad_sampler: model.sampler || '',
+          ad_scheduler: model.scheduler || 'Automatic',
+          ad_use_clip_skip: model.use_separate_clip_skip || false,
+          ad_clip_skip: model.clip_skip || 1,
+          ad_restore_after_face: model.restore_faces_after || false,
+          ad_controlnet_model: model.controlnet_model || 'None'
+        }))
       };
-
-      // Add additional models if specified
-      if (extensions.adetailer.models && extensions.adetailer.models.length > 1) {
-        for (let i = 1; i < extensions.adetailer.models.length && i < 3; i++) {
-          scripts.ADetailer.args.push({
-            ad_model: extensions.adetailer.models[i],
-            ad_confidence: extensions.adetailer.confidence || 0.3,
-            ad_mask_blur: extensions.adetailer.mask_blur || 4,
-            ad_dilate_erode: extensions.adetailer.dilate_erode || 4,
-            ad_inpaint_only_masked: extensions.adetailer.inpaint_only_masked !== false,
-            ad_inpaint_padding: extensions.adetailer.inpaint_padding || 32
-          });
-        }
-      }
     }
 
     // ControlNet

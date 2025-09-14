@@ -21,7 +21,7 @@ async function testPresetManager() {
   console.log(`   Name: ${preset.name}`);
   console.log(`   Type: ${preset.type}`);
   console.log(`   Description: ${preset.description}`);
-  console.log(`   Model: ${preset.base_settings.model}`);
+  console.log(`   Model: ${preset.base_settings?.model}`);
   console.log(`   ADetailer: ${preset.extensions?.adetailer?.enabled ? 'Enabled' : 'Disabled'}\n`);
 
   // 2. プリセットからAPIペイロードへの変換テスト
