@@ -1,0 +1,55 @@
+{
+  "name": "@yumeno/sdreforge-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for SD WebUI Reforge integration with Claude Code",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src/**/*.ts",
+    "format": "prettier --write src/**/*.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Yumeno/sdreforge_mcp.git"
+  },
+  "keywords": [
+    "mcp",
+    "stable-diffusion",
+    "webui",
+    "reforge",
+    "claude",
+    "ai",
+    "image-generation"
+  ],
+  "author": "Yumeno",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Yumeno/sdreforge_mcp/issues"
+  },
+  "homepage": "https://github.com/Yumeno/sdreforge_mcp#readme",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.18.0",
+    "axios": "^1.12.1",
+    "dotenv": "^17.2.2",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^24.3.3",
+    "@typescript-eslint/eslint-plugin": "^8.43.0",
+    "@typescript-eslint/parser": "^8.43.0",
+    "eslint": "^9.35.0",
+    "jest": "^30.1.3",
+    "prettier": "^3.6.2",
+    "ts-jest": "^29.4.1",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}
