@@ -36,10 +36,17 @@
 #   controlnet_weight_1=0.5
 #   controlnet_weight_2=0.6
 #
+#
 # ADetailer Customization:
 #   prompt="anime girl full body"
 #   adetailer_model_2="hand_yolov8n.pt"
 #   adetailer_model_3="person_yolov8n-seg.pt"
+#
+# Batch Generation:
+#   prompt="anime girl variations"
+#   batch_size=4
+#   n_iter=2
+#   # Generates 8 images total (4 parallel x 2 iterations)
 #
 # Complete Feature Combination:
 #   prompt="masterpiece anime girl"
@@ -48,6 +55,8 @@
 #   controlnet_image="pose.png"
 #   controlnet_model_1="CN-anytest3_animagine4_A"
 #   adetailer_model_2="hand_yolov8n.pt"
+#   batch_size=2
+#   n_iter=3
 #
 # ================================================================================================
 

@@ -135,6 +135,7 @@ export class ToolGenerator {
           description: 'Image file path for ControlNet Unit 2 reference (optional)'
         };
 
+
         // ControlNet model parameters
         schema.controlnet_model_1 = {
           type: 'string',
@@ -235,6 +236,22 @@ export class ToolGenerator {
           default: 0.7,
           minimum: 0.0,
           maximum: 1.0
+        };
+
+        // Batch generation parameters
+        schema.batch_size = {
+          type: 'number',
+          description: 'Number of images to generate in parallel (1-8)',
+          default: 1,
+          minimum: 1,
+          maximum: 8
+        };
+        schema.n_iter = {
+          type: 'number',
+          description: 'Number of batch iterations (batch count) (1-100)',
+          default: 1,
+          minimum: 1,
+          maximum: 100
         };
       } else {
         // Standard ControlNet handling for other presets

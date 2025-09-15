@@ -229,7 +229,17 @@ export class MCPServer {
           }
         }
 
-        fs.appendFileSync(debugLogPath, `Applied user parameter overrides to ControlNet, ADetailer, and Hires Fix\n`);
+        // Batch generation overrides
+        if (params.batch_size !== undefined) {
+          payload.batch_size = params.batch_size;
+          fs.appendFileSync(debugLogPath, `Batch size set to: ${params.batch_size}\n`);
+        }
+        if (params.n_iter !== undefined) {
+          payload.n_iter = params.n_iter;
+          fs.appendFileSync(debugLogPath, `Batch iterations set to: ${params.n_iter}\n`);
+        }
+
+        fs.appendFileSync(debugLogPath, `Applied user parameter overrides to all features\n`);
       }
 
       // Add required fields
@@ -339,6 +349,7 @@ export class MCPServer {
               fs.appendFileSync(debugLogPath, `Added image to ControlNet Unit ${imageParam.unitIndex}: ${imageParam.key}\n`);
             }
           }
+
 
           // Resolve ControlNet model names (using proven working logic)
           if (payload.alwayson_scripts.ControlNet.args && payload.alwayson_scripts.ControlNet.args.length > 0) {
