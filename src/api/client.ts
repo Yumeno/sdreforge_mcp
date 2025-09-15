@@ -241,4 +241,26 @@ export class SDWebUIClient {
   async getModels(): Promise<any[]> {
     return this.get('/sd-models');
   }
+
+  /**
+   * Get available ControlNet models
+   */
+  async getControlNetModels(): Promise<any[]> {
+    try {
+      // ControlNet API is at root level, not under /sdapi/v1
+      const directResponse = await axios.get(`${this.baseUrl}/controlnet/model_list`, {
+        timeout: this.timeout
+      });
+      return directResponse.data.model_list || directResponse.data;
+    } catch (error) {
+      return this.handleError(error as AxiosError);
+    }
+  }
+
+  /**
+   * Get available ControlNet modules/preprocessors
+   */
+  async getControlNetModules(): Promise<any[]> {
+    return this.get('/controlnet/module_list');
+  }
 }

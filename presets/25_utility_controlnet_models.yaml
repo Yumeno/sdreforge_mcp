@@ -1,0 +1,7 @@
+# (25) ControlNet Models List Utility
+name: utility_controlnet_models
+type: utility
+description: "Get available ControlNet models and test name resolution"
+
+settings:
+  action: "controlnet_models"

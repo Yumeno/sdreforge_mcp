@@ -1,0 +1,89 @@
+# (26) txt2img with 3-unit ControlNet (demo)
+name: txt2img_cn_multi_3units
+type: txt2img
+description: "txt2img with multi-unit ControlNet (up to 3 units)"
+
+base_settings:
+  checkpoint: "sd_animagineXL40_v4Opt"
+  sampler_name: "Euler a"
+  scheduler: "Automatic"
+  steps: 28
+  cfg_scale: 5
+  width: 1024
+  height: 1024
+  seed: -1
+  batch_size: 1
+  n_iter: 1
+  enable_hr: false
+  denoising_strength: 0.4
+  clip_skip: 2
+
+prompt_template:
+  positive_prefix: ""
+  positive_suffix: "masterpiece, high score, great score, absurdres"
+  negative: "lowres, bad anatomy, bad hands, text, error, missing finger, extra digits, fewer digits, cropped, worst quality, low quality, low score, bad score, average score, signature, watermark, username, blurry"
+
+extensions:
+  adetailer:
+    enabled: true
+    models:
+      # Model 1: Default face detection
+      - model: "face_yolov8n.pt"
+        confidence: 0.3
+
+      # Model 2: Optional (enabled if adetailer_model_2 provided)
+      - model: "hand_yolov8n.pt"
+        confidence: 0.3
+        enabled: false
+
+      # Model 3: Optional (enabled if adetailer_model_3 provided)
+      - model: "person_yolov8n-seg.pt"
+        confidence: 0.3
+        enabled: false
+
+      # Model 4: Optional (enabled if adetailer_model_4 provided)
+      - model: "eye_yolov8n.pt"
+        confidence: 0.3
+        enabled: false
+
+  controlnet:
+    enabled: true
+    units:
+      # Unit 0: Default configuration (user can override via parameters)
+      - module: "None"
+        model: "CN-anytest3_animagine4_A"
+        weight: 1.0
+        guidance_start: 0.0
+        guidance_end: 1.0
+        control_mode: 0
+        pixel_perfect: true
+        processor_res: 512
+        threshold_a: 64
+        threshold_b: 64
+        enabled: true
+
+      # Unit 1: Default configuration (enabled only if controlnet_image_2 provided)
+      - module: "None"
+        model: "CN-anytest3_animagine4_B"
+        weight: 0.8
+        guidance_start: 0.0
+        guidance_end: 0.7
+        control_mode: 0
+        pixel_perfect: true
+        processor_res: 512
+        threshold_a: 64
+        threshold_b: 64
+        enabled: false  # Will be enabled if controlnet_image_2 provided
+
+      # Unit 2: Default configuration (enabled only if controlnet_image_3 provided)
+      - module: "None"
+        model: "CN-anytest4_animagine4_A"
+        weight: 0.6
+        guidance_start: 0.0
+        guidance_end: 0.5
+        control_mode: 0
+        pixel_perfect: true
+        processor_res: 512
+        threshold_a: 64
+        threshold_b: 64
+        enabled: false  # Will be enabled if controlnet_image_3 provided

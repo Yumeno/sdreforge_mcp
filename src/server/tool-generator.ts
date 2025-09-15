@@ -117,6 +117,116 @@ export class ToolGenerator {
       };
     }
 
+    // For ControlNet-enabled presets
+    if (preset.extensions?.controlnet?.enabled) {
+      // Special handling for fully parameterized preset (26)
+      if (preset.name === 'txt2img_cn_multi_3units') {
+        // Fully parameterized ControlNet support
+        schema.controlnet_image = {
+          type: 'string',
+          description: 'Image file path for ControlNet Unit 0 reference'
+        };
+        schema.controlnet_image_2 = {
+          type: 'string',
+          description: 'Image file path for ControlNet Unit 1 reference (optional)'
+        };
+        schema.controlnet_image_3 = {
+          type: 'string',
+          description: 'Image file path for ControlNet Unit 2 reference (optional)'
+        };
+
+        // ControlNet model parameters
+        schema.controlnet_model_1 = {
+          type: 'string',
+          description: 'ControlNet model for Unit 0 (e.g., "CN-anytest3_animagine4_A")',
+          default: 'CN-anytest3_animagine4_A'
+        };
+        schema.controlnet_model_2 = {
+          type: 'string',
+          description: 'ControlNet model for Unit 1 (optional)'
+        };
+        schema.controlnet_model_3 = {
+          type: 'string',
+          description: 'ControlNet model for Unit 2 (optional)'
+        };
+
+        // ControlNet module parameters
+        schema.controlnet_module_1 = {
+          type: 'string',
+          description: 'ControlNet preprocessor for Unit 0 (e.g., "None", "canny", "openpose")',
+          default: 'None'
+        };
+        schema.controlnet_module_2 = {
+          type: 'string',
+          description: 'ControlNet preprocessor for Unit 1 (optional)',
+          default: 'None'
+        };
+        schema.controlnet_module_3 = {
+          type: 'string',
+          description: 'ControlNet preprocessor for Unit 2 (optional)',
+          default: 'None'
+        };
+
+        // ControlNet weight parameters
+        schema.controlnet_weight_1 = {
+          type: 'number',
+          description: 'ControlNet weight for Unit 0 (0.0-2.0)',
+          default: 1.0,
+          minimum: 0.0,
+          maximum: 2.0
+        };
+        schema.controlnet_weight_2 = {
+          type: 'number',
+          description: 'ControlNet weight for Unit 1 (0.0-2.0)',
+          default: 0.8,
+          minimum: 0.0,
+          maximum: 2.0
+        };
+        schema.controlnet_weight_3 = {
+          type: 'number',
+          description: 'ControlNet weight for Unit 2 (0.0-2.0)',
+          default: 0.6,
+          minimum: 0.0,
+          maximum: 2.0
+        };
+
+        // ADetailer model parameters
+        schema.adetailer_model_2 = {
+          type: 'string',
+          description: 'ADetailer model 2 (e.g., "hand_yolov8n.pt") - enables Model 2'
+        };
+        schema.adetailer_model_3 = {
+          type: 'string',
+          description: 'ADetailer model 3 (e.g., "person_yolov8n-seg.pt") - enables Model 3'
+        };
+        schema.adetailer_model_4 = {
+          type: 'string',
+          description: 'ADetailer model 4 (e.g., "eye_yolov8n.pt") - enables Model 4'
+        };
+      } else {
+        // Standard ControlNet handling for other presets
+        schema.controlnet_image = {
+          type: 'string',
+          description: 'Base64 encoded image or image file path for ControlNet Unit 0 reference'
+        };
+
+        // Add support for multiple ControlNet units
+        const units = preset.extensions.controlnet.units || [];
+        if (units.length > 1) {
+          schema.controlnet_image_2 = {
+            type: 'string',
+            description: 'Base64 encoded image or image file path for ControlNet Unit 1 reference (optional)'
+          };
+        }
+        if (units.length > 2) {
+          schema.controlnet_image_3 = {
+            type: 'string',
+            description: 'Base64 encoded image or image file path for ControlNet Unit 2 reference (optional)'
+          };
+        }
+      }
+    }
+
     // Optional parameters based on preset settings
     if (preset.base_settings?.seed === -1) {
       schema.seed = {
@@ -210,7 +320,9 @@ export class ToolGenerator {
         'tagger_wd_eva02': '20_tagger_wd_eva02.yaml',
         'utility_check_model': '21_utility_check_model.yaml',
         'utility_switch_model': '22_utility_switch_model.yaml',
-        'txt2img_animagine_face_hand': '23_txt2img_animagine_face_hand.yaml'
+        'txt2img_animagine_face_hand': '23_txt2img_animagine_face_hand.yaml',
+        'utility_controlnet_models': '25_utility_controlnet_models.yaml',
+        'txt2img_cn_multi_3units': '26_txt2img_cn_multi_3units.yaml'
       };
 
       const fileName = fileNameMap[cleanName];

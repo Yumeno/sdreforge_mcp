@@ -7,7 +7,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
-  Tool
+  Tool as MCPTool
 } from '@modelcontextprotocol/sdk/types.js';
 import { SDWebUIClient } from '../api/client';
 import { ToolGenerator } from './tool-generator';
@@ -20,6 +20,7 @@ export class MCPServer {
   private apiClient: SDWebUIClient;
   private toolGenerator: ToolGenerator;
   private config: ServerConfig;
+  private cachedTools: MCPTool[] | null = null;
 
   constructor(config: ServerConfig = {}) {
     this.config = {
@@ -54,15 +55,27 @@ export class MCPServer {
    * Setup request handlers
    */
   private setupHandlers(): void {
-    // List tools handler
+    // List tools handler with caching
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
-      const tools = this.toolGenerator.generateTools();
-      return { tools };
+      console.log('[CONSOLE] ListTools request received');
+      if (!this.cachedTools) {
+        console.log('[CONSOLE] Generating tools for first time...');
+        this.cachedTools = this.toolGenerator.generateTools();
+        console.log(`[CONSOLE] Generated ${this.cachedTools.length} tools`);
+      } else {
+        console.log(`[CONSOLE] Using cached tools: ${this.cachedTools.length} tools`);
+      }
+      return { tools: this.cachedTools };
     });
 
     // Call tool handler
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
+
+      // Log to file immediately when request is received
+      const callLogPath = path.join(process.cwd(), 'mcp-call-requests.log');
+      const callLogEntry = `[${new Date().toISOString()}] CALL REQUEST: ${name}\nArgs: ${JSON.stringify(args, null, 2)}\n=====\n`;
+      fs.appendFileSync(callLogPath, callLogEntry);
 
       try {
         const result = await this.executeTool(name, args);
@@ -106,6 +119,11 @@ export class MCPServer {
    */
   async executeTool(toolName: string, params: any): Promise<ToolExecutionResult> {
     try {
+      // Debug: Log all received parameters to file
+      const debugLogPath = path.join(process.cwd(), 'mcp-tool-execution.log');
+      const logEntry = `[${new Date().toISOString()}] Tool: ${toolName}\nParams: ${JSON.stringify(params, null, 2)}\n---\n`;
+      fs.appendFileSync(debugLogPath, logEntry);
+
       // Get preset
       const presetName = toolName.replace(/^sdreforge_/, '');
       const preset = this.toolGenerator.getPreset(presetName);
@@ -119,6 +137,82 @@ export class MCPServer {
 
       // Generate payload from preset and user params
       const payload = this.toolGenerator.getPresetManager().presetToPayload(preset, params);
+
+      // Special handling for fully parameterized ControlNet preset (26)
+      fs.appendFileSync(debugLogPath, `Checking preset 26 conditions: presetName=${presetName}, has_alwayson=${!!payload.alwayson_scripts}, has_controlnet=${!!(payload.alwayson_scripts?.ControlNet)}, has_args=${!!(payload.alwayson_scripts?.ControlNet?.args)}\n`);
+
+      if (presetName === 'txt2img_cn_multi_3units' && payload.alwayson_scripts?.ControlNet?.args) {
+        // Apply user parameter overrides to default ControlNet units
+        const units = payload.alwayson_scripts.ControlNet.args;
+
+        // Unit 0 overrides
+        if (units[0]) {
+          if (params.controlnet_model_1) units[0].model = params.controlnet_model_1;
+          if (params.controlnet_module_1) units[0].module = params.controlnet_module_1;
+          if (params.controlnet_weight_1 !== undefined) units[0].weight = params.controlnet_weight_1;
+        }
+
+        // Unit 1 overrides (enable if image provided)
+        if (units[1]) {
+          if (params.controlnet_image_2) units[1].enabled = true;
+          if (params.controlnet_model_2) units[1].model = params.controlnet_model_2;
+          if (params.controlnet_module_2) units[1].module = params.controlnet_module_2;
+          if (params.controlnet_weight_2 !== undefined) units[1].weight = params.controlnet_weight_2;
+        }
+
+        // Unit 2 overrides (enable if image provided)
+        if (units[2]) {
+          if (params.controlnet_image_3) units[2].enabled = true;
+          if (params.controlnet_model_3) units[2].model = params.controlnet_model_3;
+          if (params.controlnet_module_3) units[2].module = params.controlnet_module_3;
+          if (params.controlnet_weight_3 !== undefined) units[2].weight = params.controlnet_weight_3;
+        }
+
+        // Disable ControlNet entirely if no images provided
+        const hasAnyControlNetImage = params.controlnet_image || params.controlnet_image_2 || params.controlnet_image_3;
+        if (!hasAnyControlNetImage && payload.alwayson_scripts?.ControlNet) {
+          delete payload.alwayson_scripts.ControlNet;
+          fs.appendFileSync(debugLogPath, `Disabled ControlNet entirely (no images provided)\n`);
+        }
+
+        // ADetailer selective configuration
+        if (payload.alwayson_scripts?.ADetailer?.args) {
+          const adetailerArgs = payload.alwayson_scripts.ADetailer.args;
+
+          // Rebuild ADetailer args array with only specified models
+          const newADetailerArgs: any[] = [
+            true,   // enable flag
+            false   // skip_img2img flag
+          ];
+
+          // Add Model 1 (always enabled - face detection by default)
+          newADetailerArgs.push({ ad_model: 'face_yolov8n.pt' });
+
+          // Add Model 2 only if specified
+          if (params.adetailer_model_2) {
+            newADetailerArgs.push({ ad_model: params.adetailer_model_2 });
+            fs.appendFileSync(debugLogPath, `Enabled ADetailer Model 2: ${params.adetailer_model_2}\n`);
+          }
+
+          // Add Model 3 only if specified
+          if (params.adetailer_model_3) {
+            newADetailerArgs.push({ ad_model: params.adetailer_model_3 });
+            fs.appendFileSync(debugLogPath, `Enabled ADetailer Model 3: ${params.adetailer_model_3}\n`);
+          }
+
+          // Add Model 4 only if specified
+          if (params.adetailer_model_4) {
+            newADetailerArgs.push({ ad_model: params.adetailer_model_4 });
+            fs.appendFileSync(debugLogPath, `Enabled ADetailer Model 4: ${params.adetailer_model_4}\n`);
+          }
+
+          // Replace the args array
+          payload.alwayson_scripts.ADetailer.args = newADetailerArgs;
+          fs.appendFileSync(debugLogPath, `ADetailer configured with ${newADetailerArgs.length - 2} models\n`);
+        }
+
+        fs.appendFileSync(debugLogPath, `Applied user parameter overrides to ControlNet and ADetailer\n`);
+      }
 
       // Add required fields
       payload.send_images = true;
@@ -189,6 +283,80 @@ export class MCPServer {
         } catch (error) {
           console.error('Failed to switch model:', error);
           // Continue with generation even if model switch fails
+        }
+      }
+
+      // Handle ControlNet image parameter - log to file
+      const controlnetDebugInfo = {
+        has_controlnet_image: !!params.controlnet_image,
+        controlnet_image_path: params.controlnet_image,
+        has_alwayson_scripts: !!payload.alwayson_scripts,
+        has_controlnet_in_scripts: !!(payload.alwayson_scripts?.ControlNet)
+      };
+      fs.appendFileSync(debugLogPath, `ControlNet Check: ${JSON.stringify(controlnetDebugInfo, null, 2)}\n`);
+
+      // Handle multiple ControlNet image parameters (controlnet_image, controlnet_image_2, controlnet_image_3)
+      if (payload.alwayson_scripts?.ControlNet) {
+        try {
+          // Process multiple ControlNet images
+          const imageParams = [
+            { key: 'controlnet_image', unitIndex: 0 },
+            { key: 'controlnet_image_2', unitIndex: 1 },
+            { key: 'controlnet_image_3', unitIndex: 2 }
+          ];
+
+          for (const imageParam of imageParams) {
+            const imageParamValue = params[imageParam.key];
+            if (imageParamValue && payload.alwayson_scripts.ControlNet.args[imageParam.unitIndex]) {
+              // Read image file and convert to base64
+              let imageData = imageParamValue;
+              if (imageParamValue.startsWith('C:\\') || imageParamValue.startsWith('/')) {
+                const fs = require('fs');
+                const buffer = fs.readFileSync(imageParamValue);
+                imageData = buffer.toString('base64');
+              }
+
+              // Add image to corresponding ControlNet unit
+              payload.alwayson_scripts.ControlNet.args[imageParam.unitIndex].image = imageData;
+              fs.appendFileSync(debugLogPath, `Added image to ControlNet Unit ${imageParam.unitIndex}: ${imageParam.key}\n`);
+            }
+          }
+
+          // Resolve ControlNet model names (using proven working logic)
+          if (payload.alwayson_scripts.ControlNet.args && payload.alwayson_scripts.ControlNet.args.length > 0) {
+            fs.appendFileSync(debugLogPath, `Starting ControlNet model resolution for ${payload.alwayson_scripts.ControlNet.args.length} units\n`);
+
+            for (const unit of payload.alwayson_scripts.ControlNet.args) {
+              if (unit.model && !unit.model.includes('[')) {
+                fs.appendFileSync(debugLogPath, `Resolving ControlNet model: ${unit.model}\n`);
+                try {
+                  const controlnetModels = await this.apiClient.getControlNetModels();
+                  const modelInfo = controlnetModels.find((modelName: string) => {
+                    // Try exact match first
+                    if (modelName === unit.model) return true;
+                    // Try includes match (without hash)
+                    if (modelName.includes(unit.model)) return true;
+                    // Try case-insensitive match
+                    if (modelName.toLowerCase().includes(unit.model.toLowerCase())) return true;
+                    return false;
+                  });
+
+                  if (modelInfo) {
+                    fs.appendFileSync(debugLogPath, `Resolved ControlNet model: ${unit.model} -> ${modelInfo}\n`);
+                    unit.model = modelInfo;
+                  } else {
+                    fs.appendFileSync(debugLogPath, `WARNING: ControlNet model not found: ${unit.model}\n`);
+                  }
+                } catch (error: any) {
+                  fs.appendFileSync(debugLogPath, `ERROR: Failed to resolve ControlNet model: ${error.message}\n`);
+                }
+              }
+            }
+
+            fs.appendFileSync(debugLogPath, `ControlNet processing complete\n`);
+          }
+        } catch (error) {
+          console.error('[ERROR] Failed to process ControlNet image:', error);
         }
       }
 
@@ -303,6 +471,41 @@ export class MCPServer {
                 message: `Switched to model: ${modelInfo.title}`
               }
             };
+          } else if (preset.settings?.action === 'controlnet_models') {
+            // Get ControlNet models and test name resolution
+            try {
+              const controlnetModels = await this.apiClient.getControlNetModels();
+
+              // Test resolution for common models
+              const testModels = ['CN-anytest3_animagine4_A', 'CN-anytest4_animagine4_A'];
+              const resolutionResults: Record<string, string> = {};
+
+              for (const testModel of testModels) {
+                const resolved = controlnetModels.find((modelName: string) => {
+                  if (modelName === testModel) return true;
+                  if (modelName.includes(testModel)) return true;
+                  if (modelName.toLowerCase().includes(testModel.toLowerCase())) return true;
+                  return false;
+                });
+
+                resolutionResults[testModel] = resolved || 'NOT_FOUND';
+              }
+
+              return {
+                success: true,
+                data: {
+                  total_models: controlnetModels.length,
+                  all_models: controlnetModels,
+                  resolution_test: resolutionResults,
+                  message: `Found ${controlnetModels.length} ControlNet models`
+                }
+              };
+            } catch (error: any) {
+              return {
+                success: false,
+                error: `Failed to get ControlNet models: ${error.message}`
+              };
+            }
           } else {
             return {
               success: false,
@@ -348,8 +551,9 @@ export class MCPServer {
             success: true,
             data: {
               images: savedFiles,
-              parameters: genResponse.parameters,
-              info: genResponse.info
+              // Remove large parameters object to avoid MCP size limits
+              // parameters: genResponse.parameters,
+              // info: genResponse.info
             },
             metadata: {
               preset: presetName,
@@ -426,13 +630,27 @@ export class MCPServer {
    * Start the server
    */
   async start(): Promise<void> {
+    // Ensure all presets are loaded before starting server
+    console.error('[DEBUG] Starting tool preload process...');
+    const tools = this.toolGenerator.generateTools();
+    this.cachedTools = tools; // Cache the tools for immediate availability
+    console.error(`[DEBUG] Preloaded ${tools.length} tools during startup`);
+
+    // Add explicit delay to ensure all initialization is complete
+    console.error('[DEBUG] Waiting for initialization to complete...');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    console.error('[DEBUG] Starting MCP transport connection...');
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
+
+    console.error('[DEBUG] MCP server connection established');
 
     if (this.config.debug) {
       console.error(`${this.config.serverName} v${this.config.serverVersion} started`);
       console.error(`API URL: ${this.config.apiUrl}`);
       console.error(`Presets directory: ${this.config.presetsDir}`);
+      console.error(`Tools available: ${tools.length}`);
     }
   }
 

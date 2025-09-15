@@ -39,8 +39,8 @@ extensions:
   controlnet:
     enabled: true
     units:
-      - module: "none"
-        model: "CN-Anytest3_animagine4_A"
+      - module: "None"
+        model: "CN-anytest3_animagine4_A"
         weight: 1.0
         guidance_start: 0.0
         guidance_end: 1.0
