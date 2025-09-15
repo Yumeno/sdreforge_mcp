@@ -211,7 +211,25 @@ export class MCPServer {
           fs.appendFileSync(debugLogPath, `ADetailer configured with ${newADetailerArgs.length - 2} models\n`);
         }
 
-        fs.appendFileSync(debugLogPath, `Applied user parameter overrides to ControlNet and ADetailer\n`);
+        // Hires Fix overrides
+        if (params.enable_hr !== undefined) {
+          payload.enable_hr = params.enable_hr;
+          fs.appendFileSync(debugLogPath, `Hires Fix enabled: ${params.enable_hr}\n`);
+
+          if (params.enable_hr) {
+            // Apply Hires Fix parameters if enabled
+            if (params.hr_scale !== undefined) payload.hr_scale = params.hr_scale;
+            if (params.hr_upscaler) payload.hr_upscaler = params.hr_upscaler;
+            if (params.hr_second_pass_steps !== undefined) payload.hr_second_pass_steps = params.hr_second_pass_steps;
+            if (params.hr_denoising_strength !== undefined) payload.denoising_strength = params.hr_denoising_strength;
+            if (params.hr_resize_x !== undefined) payload.hr_resize_x = params.hr_resize_x;
+            if (params.hr_resize_y !== undefined) payload.hr_resize_y = params.hr_resize_y;
+
+            fs.appendFileSync(debugLogPath, `Hires Fix configured: scale=${payload.hr_scale}, upscaler=${payload.hr_upscaler}\n`);
+          }
+        }
+
+        fs.appendFileSync(debugLogPath, `Applied user parameter overrides to ControlNet, ADetailer, and Hires Fix\n`);
       }
 
       // Add required fields

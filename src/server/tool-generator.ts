@@ -203,6 +203,39 @@ export class ToolGenerator {
           type: 'string',
           description: 'ADetailer model 4 (e.g., "eye_yolov8n.pt") - enables Model 4'
         };
+
+        // Hires Fix parameters
+        schema.enable_hr = {
+          type: 'boolean',
+          description: 'Enable Hires Fix for high resolution generation',
+          default: false
+        };
+        schema.hr_scale = {
+          type: 'number',
+          description: 'Hires Fix scale factor (1.0-4.0)',
+          default: 2.0,
+          minimum: 1.0,
+          maximum: 4.0
+        };
+        schema.hr_upscaler = {
+          type: 'string',
+          description: 'Upscaler model (e.g., "R-ESRGAN 4x+ Anime6B", "Latent")',
+          default: 'R-ESRGAN 4x+ Anime6B'
+        };
+        schema.hr_second_pass_steps = {
+          type: 'number',
+          description: 'Hires Fix second pass steps (0 = use same steps)',
+          default: 0,
+          minimum: 0,
+          maximum: 150
+        };
+        schema.hr_denoising_strength = {
+          type: 'number',
+          description: 'Hires Fix denoising strength (0.0-1.0)',
+          default: 0.7,
+          minimum: 0.0,
+          maximum: 1.0
+        };
       } else {
         // Standard ControlNet handling for other presets
         schema.controlnet_image = {
