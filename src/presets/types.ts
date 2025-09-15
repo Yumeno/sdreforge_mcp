@@ -198,9 +198,13 @@ export interface RegionalPrompterConfig {
  * Dynamic Prompts configuration
  */
 export interface DynamicPromptsConfig {
-  enabled: boolean;
-  combinatorial?: boolean;
+  enable_dynamic_prompts: boolean;
+  combinatorial_generation?: boolean;
   max_generations?: number;
+  magic_prompt?: boolean;
+  // Legacy support
+  enabled?: boolean;
+  combinatorial?: boolean;
   enable_jinja_templates?: boolean;
   unlink_seed?: boolean;
   template?: string;

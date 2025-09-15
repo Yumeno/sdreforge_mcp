@@ -253,6 +253,35 @@ export class ToolGenerator {
           minimum: 1,
           maximum: 100
         };
+
+        // Dynamic Prompts parameters
+        schema.enable_dynamic_prompts = {
+          type: 'boolean',
+          description: 'Enable Dynamic Prompts for automatic prompt expansion',
+          default: true
+        };
+        schema.magic_prompt = {
+          type: 'boolean',
+          description: 'Enable Magic Prompt for enhanced prompt generation',
+          default: false
+        };
+        schema.combinatorial_generation = {
+          type: 'boolean',
+          description: 'Enable combinatorial generation for all prompt combinations',
+          default: false
+        };
+        schema.max_generations = {
+          type: 'number',
+          description: 'Maximum number of prompt variations (0 = unlimited)',
+          default: 0,
+          minimum: 0,
+          maximum: 100
+        };
+        schema.use_fixed_seed = {
+          type: 'boolean',
+          description: 'Use fixed seed for wildcards (recommended for combinatorial generation)',
+          default: true
+        };
       } else {
         // Standard ControlNet handling for other presets
         schema.controlnet_image = {

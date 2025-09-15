@@ -48,13 +48,26 @@
 #   n_iter=2
 #   # Generates 8 images total (4 parallel x 2 iterations)
 #
+# Dynamic Prompts Expansion:
+#   prompt="{cute|beautiful|elegant} anime girl with {red|blue|black} hair"
+#   enable_dynamic_prompts=true
+#   batch_size=4
+#   # Automatic prompt expansion for each image
+#
+# Magic Prompt Enhancement:
+#   prompt="anime girl"
+#   enable_dynamic_prompts=true
+#   magic_prompt=true
+#   # AI automatically enhances and details the prompt
+#
 # Complete Feature Combination:
-#   prompt="masterpiece anime girl"
+#   prompt="masterpiece {cute|cool} anime girl"
 #   enable_hr=true
 #   hr_scale=1.5
 #   controlnet_image="pose.png"
 #   controlnet_model_1="CN-anytest3_animagine4_A"
 #   adetailer_model_2="hand_yolov8n.pt"
+#   enable_dynamic_prompts=true
 #   batch_size=2
 #   n_iter=3
 #
@@ -172,3 +185,12 @@ extensions:
         threshold_a: 64
         threshold_b: 64
         enabled: false
+
+  # Dynamic Prompts: Automatic prompt expansion and variation
+  # Usage: Use {option1|option2} syntax in prompts for automatic expansion
+  # Override with: enable_dynamic_prompts, magic_prompt, combinatorial_generation, max_generations
+  dynamic_prompts:
+    enable_dynamic_prompts: true    # Default enabled for creative expansion
+    combinatorial_generation: false
+    max_generations: 0             # 0 = unlimited
+    magic_prompt: false

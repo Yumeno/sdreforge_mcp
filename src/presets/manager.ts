@@ -249,16 +249,29 @@ export class PresetManager {
       };
     }
 
-    // Dynamic Prompts
-    if (extensions.dynamic_prompts?.enabled) {
-      scripts['Dynamic Prompts'] = {
-        args: [{
-          combinatorial: extensions.dynamic_prompts.combinatorial || false,
-          max_generations: extensions.dynamic_prompts.max_generations || 1,
-          enable_jinja_templates: extensions.dynamic_prompts.enable_jinja_templates || false,
-          unlink_seed: extensions.dynamic_prompts.unlink_seed || false,
-          template: extensions.dynamic_prompts.template || ''
-        }]
+    // Dynamic Prompts (18 arguments required)
+    if (extensions.dynamic_prompts?.enable_dynamic_prompts) {
+      scripts['dynamic prompts v2.17.1'] = {
+        args: [
+          extensions.dynamic_prompts.enable_dynamic_prompts || true,     // 1: enabled
+          extensions.dynamic_prompts.combinatorial_generation || false,  // 2: combinatorial
+          1,                                                            // 3: combinatorial_batches
+          extensions.dynamic_prompts.magic_prompt || false,             // 4: magic_prompt
+          false,                                                        // 5: feeling_lucky
+          false,                                                        // 6: attention_grabber
+          1.1,                                                          // 7: min_attention
+          1.5,                                                          // 8: max_attention
+          100,                                                          // 9: magic_prompt_length
+          0.7,                                                          // 10: magic_temp_value
+          false,                                                        // 11: use_fixed_seed
+          false,                                                        // 12: unlink_seed_from_prompt
+          false,                                                        // 13: disable_negative_prompt
+          false,                                                        // 14: enable_jinja_templates
+          false,                                                        // 15: no_image_generation
+          extensions.dynamic_prompts.max_generations || 0,              // 16: max_generations
+          "magic_prompt",                                               // 17: magic_model
+          ""                                                            // 18: magic_blocklist_regex
+        ]
       };
     }
 

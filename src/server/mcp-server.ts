@@ -239,6 +239,46 @@ export class MCPServer {
           fs.appendFileSync(debugLogPath, `Batch iterations set to: ${params.n_iter}\n`);
         }
 
+        // Dynamic Prompts overrides (18 arguments structure)
+        if (payload.alwayson_scripts && (params.enable_dynamic_prompts !== undefined || params.magic_prompt !== undefined || params.combinatorial_generation !== undefined || params.max_generations !== undefined)) {
+          // Initialize Dynamic Prompts if not exists (correct 18 arguments)
+          if (!payload.alwayson_scripts['dynamic prompts v2.17.1']) {
+            payload.alwayson_scripts['dynamic prompts v2.17.1'] = {
+              args: [
+                true,            // 1: enabled
+                false,           // 2: combinatorial
+                1,               // 3: combinatorial_batches
+                false,           // 4: magic_prompt
+                false,           // 5: feeling_lucky
+                false,           // 6: attention_grabber
+                1.1,             // 7: min_attention
+                1.5,             // 8: max_attention
+                100,             // 9: magic_prompt_length
+                0.7,             // 10: magic_temp_value
+                true,            // 11: use_fixed_seed (for combinatorial generation)
+                false,           // 12: unlink_seed_from_prompt
+                false,           // 13: disable_negative_prompt
+                false,           // 14: enable_jinja_templates
+                false,           // 15: no_image_generation
+                0,               // 16: max_generations
+                "magic_prompt",  // 17: magic_model
+                ""               // 18: magic_blocklist_regex
+              ]
+            };
+          }
+
+          const dpArgs = payload.alwayson_scripts['dynamic prompts v2.17.1'].args;
+
+          // Apply overrides to correct positions
+          if (params.enable_dynamic_prompts !== undefined) dpArgs[0] = params.enable_dynamic_prompts;
+          if (params.combinatorial_generation !== undefined) dpArgs[1] = params.combinatorial_generation;
+          if (params.magic_prompt !== undefined) dpArgs[3] = params.magic_prompt;
+          if (params.use_fixed_seed !== undefined) dpArgs[10] = params.use_fixed_seed; // Position 11 (0-indexed)
+          if (params.max_generations !== undefined) dpArgs[15] = params.max_generations; // Position 16 (0-indexed)
+
+          fs.appendFileSync(debugLogPath, `Dynamic Prompts configured: enabled=${dpArgs[0]}, combinatorial=${dpArgs[1]}, use_fixed_seed=${dpArgs[10]}, magic=${dpArgs[3]}, max_gen=${dpArgs[15]}\n`);
+        }
+
         fs.appendFileSync(debugLogPath, `Applied user parameter overrides to all features\n`);
       }
 
