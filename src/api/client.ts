@@ -144,6 +144,13 @@ export class SDWebUIClient {
   async post<T = any>(endpoint: string, payload: Record<string, any>): Promise<T> {
     try {
       const cleanedPayload = this.cleanPayload(payload);
+
+      // Debug log
+      if (process.env.DEBUG === 'true' && endpoint.includes('txt2img')) {
+        console.log('Sending payload to', endpoint);
+        console.log('Override settings in payload:', cleanedPayload.override_settings);
+      }
+
       const response = await this.client.post<T>(endpoint, cleanedPayload);
       return response.data;
     } catch (error) {
@@ -168,15 +175,22 @@ export class SDWebUIClient {
   /**
    * Extract PNG metadata
    */
-  async pngInfo(payload: PNGInfoPayload): Promise<PNGInfoResponse> {
-    return this.post<PNGInfoResponse>('/png-info', payload);
+  async pngInfo(image: string): Promise<PNGInfoResponse> {
+    return this.post<PNGInfoResponse>('/png-info', { image });
   }
 
   /**
    * Upscale or process single image
    */
-  async extraSingleImage(payload: ExtrasSingleImagePayload): Promise<ExtrasResponse> {
+  async extrasSingleImage(payload: ExtrasSingleImagePayload): Promise<ExtrasResponse> {
     return this.post<ExtrasResponse>('/extra-single-image', payload);
+  }
+
+  /**
+   * Alias for extrasSingleImage
+   */
+  async extraSingleImage(payload: ExtrasSingleImagePayload): Promise<ExtrasResponse> {
+    return this.extrasSingleImage(payload);
   }
 
   /**
@@ -184,13 +198,6 @@ export class SDWebUIClient {
    */
   async interrogate(payload: InterrogatePayload): Promise<InterrogateResponse> {
     return this.post<InterrogateResponse>('/interrogate', payload);
-  }
-
-  /**
-   * Get available models
-   */
-  async getModels(): Promise<any[]> {
-    return this.get('/sd-models');
   }
 
   /**
@@ -226,5 +233,12 @@ export class SDWebUIClient {
    */
   async setOptions(options: Record<string, any>): Promise<any> {
     return this.post('/options', options);
+  }
+
+  /**
+   * Get available models
+   */
+  async getModels(): Promise<any[]> {
+    return this.get('/sd-models');
   }
 }

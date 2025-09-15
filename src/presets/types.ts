@@ -8,12 +8,17 @@
 export interface Preset {
   name: string;
   description?: string;
-  type: 'txt2img' | 'img2img' | 'png-info' | 'extras-single-image' | 'extras-batch-images' |
+  type: 'txt2img' | 'img2img' | 'png-info' | 'extras' | 'extras-single-image' | 'extras-batch-images' |
         'interrogate' | 'progress' | 'options-get' | 'options-set' | 'models' |
-        'refresh' | 'samplers' | 'unload-checkpoint';
+        'refresh' | 'samplers' | 'unload-checkpoint' | 'rembg' | 'tagger' | 'utility';
   base_settings?: BaseSettings;
   settings?: Record<string, any>;  // For utility presets
   extensions?: Extensions;
+  prompt_template?: {
+    positive_prefix?: string;
+    positive_suffix?: string;
+    negative?: string;
+  };
 }
 
 /**
@@ -41,6 +46,7 @@ export interface BaseSettings {
 
   // モデル設定
   model?: string;
+  checkpoint?: string;  // SD WebUI用のチェックポイント名
   vae?: string;
   clip_skip?: number;
 
@@ -125,6 +131,7 @@ export interface ADetailerModel {
   mask_preprocessor?: string;
   inpaint_only_masked?: boolean;
   inpaint_padding?: number;
+  denoising_strength?: number;
   use_separate_width?: boolean;
   width?: number;
   use_separate_height?: boolean;

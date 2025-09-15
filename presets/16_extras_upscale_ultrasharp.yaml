@@ -1,0 +1,12 @@
+# (16) extras upscale 4x_ultrasharp
+name: extras_upscale_ultrasharp
+type: extras
+description: "Upscale image using 4x_ultrasharp model"
+
+settings:
+  upscaling_resize: 4
+  upscaler_1: "4x_ultrasharp"
+  extras_upscaler_2_visibility: 0
+  gfpgan_visibility: 0
+  codeformer_visibility: 0
+  codeformer_weight: 0

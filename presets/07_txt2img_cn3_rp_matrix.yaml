@@ -1,0 +1,59 @@
+# (7) txt2img CN3 + Regional Prompter Matrix mode
+name: txt2img_cn3_rp_matrix
+type: txt2img
+description: "txt2img with ControlNet Anytest3 + Regional Prompter Matrix"
+
+base_settings:
+  checkpoint: "sd_animagineXL40_v4Opt"
+  sampler_name: "Euler a"
+  scheduler: "Automatic"
+  steps: 28
+  cfg_scale: 5
+  width: 1024
+  height: 1024
+  seed: -1
+  batch_size: 1
+  n_iter: 1
+  enable_hr: false
+  denoising_strength: 0.4
+  clip_skip: 2
+
+prompt_template:
+  positive_prefix: ""
+  positive_suffix: "masterpiece, high score, great score, absurdres"
+  negative: "lowres, bad anatomy, bad hands, text, error, missing finger, extra digits, fewer digits, cropped, worst quality, low quality, low score, bad score, average score, signature, watermark, username, blurry"
+
+extensions:
+  adetailer:
+    enabled: true
+    models:
+      - model: "face_yolov8n.pt"
+        prompt: ""
+        confidence: 0.3
+        dilate_erode: 4
+        mask_blur: 4
+        denoising_strength: 0.4
+        inpaint_only_masked: true
+        inpaint_padding: 32
+
+  controlnet:
+    enabled: true
+    units:
+      - module: "none"
+        model: "CN-Anytest3_animagine4_A"
+        weight: 1.0
+        guidance_start: 0.0
+        guidance_end: 1.0
+        control_mode: 0
+        pixel_perfect: true
+        processor_res: 512
+        threshold_a: 64
+        threshold_b: 64
+
+  regional_prompter:
+    enabled: true
+    mode: "Matrix"
+    divide_ratio: "1,1"
+    use_base: false
+    use_common: false
+    use_neg_common: false

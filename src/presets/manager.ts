@@ -8,6 +8,7 @@ import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { Preset, BaseSettings, Extensions } from './types';
 import { Txt2ImgPayload, Img2ImgPayload } from '../api/types';
+import { PromptHandler } from './prompt-handler';
 
 export class PresetManager {
   private presetsDir: string;
@@ -45,7 +46,12 @@ export class PresetManager {
     const presets: Preset[] = [];
 
     try {
+      // Write debug to file for debugging
+      const logPath = path.join(process.cwd(), 'mcp-debug.log');
+      const debugLog = `[DEBUG ${new Date().toISOString()}] Loading presets from: ${this.presetsDir}\n`;
+      fs.appendFileSync(logPath, debugLog);
       const files = fs.readdirSync(this.presetsDir);
+      fs.appendFileSync(logPath, `[DEBUG ${new Date().toISOString()}] Found ${files.length} files in presets directory\n`);
 
       for (const file of files) {
         // Only process YAML files
@@ -58,11 +64,20 @@ export class PresetManager {
           continue;
         }
 
+        // Skip templates and placeholder files
+        if (file.includes('template') || file.includes('placeholder')) {
+          continue;
+        }
+
         try {
+          const logPath2 = path.join(process.cwd(), 'mcp-debug.log');
+          fs.appendFileSync(logPath2, `[DEBUG ${new Date().toISOString()}] Loading preset: ${file}\n`);
           const preset = this.loadPreset(file);
+          fs.appendFileSync(logPath2, `[DEBUG ${new Date().toISOString()}] Successfully loaded preset: ${preset.name} (type: ${preset.type})\n`);
           presets.push(preset);
-        } catch (error) {
-          console.warn(`Failed to load preset ${file}:`, error);
+        } catch (error: any) {
+          const logPath2 = path.join(process.cwd(), 'mcp-debug.log');
+          fs.appendFileSync(logPath2, `[ERROR ${new Date().toISOString()}] Failed to load preset ${file}: ${error.message}\n`);
         }
       }
     } catch (error) {
@@ -85,12 +100,22 @@ export class PresetManager {
       return false;
     }
 
-    if (!preset.type || !['txt2img', 'img2img'].includes(preset.type)) {
+    const validTypes = ['txt2img', 'img2img', 'extras', 'png-info', 'tagger', 'rembg', 'utility'];
+    if (!preset.type || !validTypes.includes(preset.type)) {
       return false;
     }
 
-    if (!preset.base_settings || typeof preset.base_settings !== 'object') {
-      return false;
+    // txt2img and img2img require base_settings
+    if (['txt2img', 'img2img'].includes(preset.type)) {
+      if (!preset.base_settings || typeof preset.base_settings !== 'object') {
+        return false;
+      }
+    }
+    // Utility and processing presets require settings
+    else if (['extras', 'png-info', 'tagger', 'rembg', 'utility'].includes(preset.type)) {
+      if (!preset.settings || typeof preset.settings !== 'object') {
+        return false;
+      }
     }
 
     // Validate img2img specific requirements
@@ -125,9 +150,16 @@ export class PresetManager {
       ...userParams
     };
 
-    // Apply prompt suffix if present
-    if (preset.base_settings?.prompt_suffix && userParams.prompt) {
-      basePayload.prompt = userParams.prompt + preset.base_settings.prompt_suffix;
+    // Apply prompt template if present
+    if (preset.prompt_template && userParams.prompt) {
+      const promptResult = PromptHandler.mergePrompts(
+        userParams.prompt,
+        preset.prompt_template
+      );
+      basePayload.prompt = promptResult.prompt;
+      if (promptResult.negative_prompt) {
+        basePayload.negative_prompt = promptResult.negative_prompt;
+      }
     }
 
     // Remove preset-specific fields that aren't part of API
@@ -150,40 +182,32 @@ export class PresetManager {
 
     // ADetailer
     if (extensions.adetailer?.enabled && extensions.adetailer.models) {
+      // ADetailer expects args as: [enable_flag, skip_img2img, {model_config1}, {model_config2}, ...]
+      const adetailerArgs: any[] = [
+        true,   // Enable ADetailer
+        false   // Don't skip img2img
+      ];
+
+      // Add each model as a minimal config object
+      extensions.adetailer.models.forEach(model => {
+        const modelConfig: any = {
+          ad_model: model.model || 'face_yolov8n.pt'
+        };
+
+        // Only add optional parameters if explicitly defined
+        if (model.prompt) modelConfig.ad_prompt = model.prompt;
+        if (model.negative_prompt) modelConfig.ad_negative_prompt = model.negative_prompt;
+        if (model.confidence !== undefined) modelConfig.ad_confidence = model.confidence;
+
+        adetailerArgs.push(modelConfig);
+      });
+
       scripts.ADetailer = {
-        args: extensions.adetailer.models.map(model => ({
-          ad_model: model.model || 'face_yolov8n.pt',
-          ad_prompt: model.prompt || '',
-          ad_negative_prompt: model.negative_prompt || '',
-          ad_confidence: model.confidence || 0.3,
-          ad_mask_blur: model.mask_blur || 4,
-          ad_dilate_erode: model.dilate_erode || 4,
-          ad_x_offset: model.x_offset || 0,
-          ad_y_offset: model.y_offset || 0,
-          ad_mask_merge_invert: model.mask_merge_invert || 'None',
-          ad_mask_preprocessor: model.mask_preprocessor || 'None',
-          ad_inpaint_only_masked: model.inpaint_only_masked !== false,
-          ad_inpaint_padding: model.inpaint_padding || 32,
-          ad_use_inpaint_width_height: model.use_separate_width || false,
-          ad_inpaint_width: model.width || 512,
-          ad_inpaint_height: model.height || 512,
-          ad_use_cfg_scale: model.use_separate_cfg_scale || false,
-          ad_cfg_scale: model.cfg_scale || 7.0,
-          ad_use_steps: model.use_separate_steps || false,
-          ad_steps: model.steps || 28,
-          ad_use_checkpoint: model.use_separate_checkpoint || false,
-          ad_checkpoint: model.checkpoint || '',
-          ad_use_vae: model.use_separate_vae || false,
-          ad_vae: model.vae || '',
-          ad_use_sampler: model.use_separate_sampler || false,
-          ad_sampler: model.sampler || '',
-          ad_scheduler: model.scheduler || 'Automatic',
-          ad_use_clip_skip: model.use_separate_clip_skip || false,
-          ad_clip_skip: model.clip_skip || 1,
-          ad_restore_after_face: model.restore_faces_after || false,
-          ad_controlnet_model: model.controlnet_model || 'None'
-        }))
+        args: adetailerArgs
       };
+
+      // Debug log
+      console.error('[DEBUG] ADetailer args structure:', JSON.stringify(adetailerArgs, null, 2));
     }
 
     // ControlNet

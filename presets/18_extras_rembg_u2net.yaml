@@ -1,0 +1,12 @@
+# (18) extras rembg u2net
+name: extras_rembg_u2net
+type: extras
+description: "Remove background using u2net model"
+
+settings:
+  rembg_model: "u2net"
+  return_mask: false
+  alpha_matting: true
+  alpha_matting_foreground_threshold: 240
+  alpha_matting_background_threshold: 50
+  alpha_matting_erode_size: 10

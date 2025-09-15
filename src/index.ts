@@ -9,7 +9,7 @@ import { MCPServer } from './server';
 async function main() {
   try {
     const server = new MCPServer({
-      debug: process.env.DEBUG === 'true'
+      debug: true  // Always enable debug for troubleshooting
     });
 
     await server.start();

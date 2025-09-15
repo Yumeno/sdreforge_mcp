@@ -1,0 +1,9 @@
+# (19) extras rembg isnet_anime
+name: extras_rembg_isnet_anime
+type: extras
+description: "Remove background using isnet_anime model for anime images"
+
+settings:
+  rembg_model: "isnet-anime"
+  return_mask: false
+  alpha_matting: false
