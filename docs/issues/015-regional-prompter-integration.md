@@ -185,3 +185,52 @@ rp_prompt_2="golden armor, intricate details"
 - [ ] 全機能組み合わせ動作確認
 
 **Revolutionary Achievement**: AIアーティストの創作プロセスを完全に変革する統合ツールの実現
+
+## 🚨 現在の具体的問題（2025-09-16）
+
+### 発生している事実
+**テスト条件:**
+```
+プロンプト: "red girl ADDCOL blue girl"
+パラメータ: rp_use_common=false, rp_use_base=false
+期待結果: 両方のチャンクにsuffix適用
+```
+
+**実際の結果:**
+```
+出力: "red girl, masterpiece, high score, great score, absurdres ADDCOL blue girl"
+```
+
+**デバッグログの事実:**
+```
+shouldWrapAllChunks: false, chunks: 2
+Common: 1, Base: 1, Regions: 0
+Chunk[0]: "red girl"
+Chunk[1]: "blue girl"
+```
+
+### 問題の核心
+1. **shouldWrapAllChunks判定が間違っている**: false（実際） vs true（期待）
+2. **Common/Base count計算が間違っている**: Common:1, Base:1（実際） vs Common:0, Base:0（期待）
+3. **ユーザー指定値が反映されていない**: rp_use_common=false, rp_use_base=false が無視されている
+
+### 技術的分析
+**条件判定ロジック:**
+```typescript
+const hasUseCommon = rpConfig?.use_common || userPrompt.includes('ADDCOMM');
+const hasUseBase = rpConfig?.use_base || userPrompt.includes('ADDBASE');
+const shouldWrapAllChunks = !hasUseCommon && !hasUseBase;
+```
+
+**問題箇所:**
+- rpConfigの実際の値が期待値と異なる
+- パラメータ集約処理に問題がある可能性
+
+### 実現したいこと
+```
+入力: "red girl ADDCOL blue girl"
+設定: rp_use_common=false, rp_use_base=false
+期待: "red girl, masterpiece... ADDCOL blue girl, masterpiece..."
+```
+
+仕様通り、common/base未使用時は全チャンクにprefix/suffix適用が必要。

@@ -279,6 +279,70 @@ export class MCPServer {
           fs.appendFileSync(debugLogPath, `Dynamic Prompts configured: enabled=${dpArgs[0]}, combinatorial=${dpArgs[1]}, use_fixed_seed=${dpArgs[10]}, magic=${dpArgs[3]}, max_gen=${dpArgs[15]}\n`);
         }
 
+        // Regional Prompter overrides (16 arguments structure)
+        if (params.rp_active) {
+          // Initialize Regional Prompter if not exists
+          if (!payload.alwayson_scripts) payload.alwayson_scripts = {};
+
+          // Build 16-argument structure
+          const rpArgs = [
+            params.rp_active || false,                           // 1: active
+            params.rp_debug || false,                           // 2: debug
+            params.rp_mode || 'Matrix',                         // 3: mode
+            params.rp_matrix_submode || 'Columns',              // 4: matrix_submode
+            params.rp_mask_submode || 'Mask',                   // 5: mask_submode
+            params.rp_prompt_submode || 'Prompt',               // 6: prompt_submode
+            params.rp_divide_ratio || '1,1',                    // 7: divide_ratio
+            params.rp_base_ratio || '0.2',                      // 8: base_ratio
+            params.rp_use_base !== undefined ? params.rp_use_base : true,     // 9: use_base
+            params.rp_use_common || false,                      // 10: use_common
+            params.rp_use_ncommon || false,                     // 11: use_ncommon
+            params.rp_calc_mode || 'Attention',                 // 12: calc_mode
+            params.rp_not_change_and || false,                 // 13: not_change_and
+            params.rp_lora_stop_step || '0',                    // 14: lora_stop_step
+            params.rp_lora_hires_stop_step || '0',              // 15: lora_hires_stop_step
+            params.rp_threshold || '0.4'                        // 16: threshold
+          ];
+
+          // For Mask mode, add mask processing
+          if (params.rp_mode === 'Mask') {
+            // Process mask images
+            const maskImages = [];
+            for (let i = 1; i <= 3; i++) {
+              const maskParam = params[`rp_mask_${i}`];
+              if (maskParam) {
+                let maskData = maskParam;
+                if (maskParam.startsWith('C:\\') || maskParam.startsWith('/')) {
+                  const fs = require('fs');
+                  const buffer = fs.readFileSync(maskParam);
+                  maskData = buffer.toString('base64');
+                }
+                maskImages.push(maskData);
+                fs.appendFileSync(debugLogPath, `Added Regional Prompter mask ${i}: ${maskParam}\n`);
+              }
+            }
+
+            // Build region prompts for mask mode
+            const regionPrompts = [];
+            for (let i = 1; i <= 3; i++) {
+              const promptParam = params[`rp_prompt_${i}`];
+              if (promptParam) {
+                regionPrompts.push(promptParam);
+                fs.appendFileSync(debugLogPath, `Added Regional Prompter prompt ${i}: ${promptParam}\n`);
+              }
+            }
+
+            // Update args for mask mode (add mask data)
+            rpArgs.push(...maskImages); // Add mask images to args
+          }
+
+          payload.alwayson_scripts['Regional Prompter'] = {
+            args: rpArgs
+          };
+
+          fs.appendFileSync(debugLogPath, `Regional Prompter configured: mode=${params.rp_mode}, active=${params.rp_active}\n`);
+        }
+
         fs.appendFileSync(debugLogPath, `Applied user parameter overrides to all features\n`);
       }
 
@@ -378,10 +442,19 @@ export class MCPServer {
             if (imageParamValue && payload.alwayson_scripts.ControlNet.args[imageParam.unitIndex]) {
               // Read image file and convert to base64
               let imageData = imageParamValue;
-              if (imageParamValue.startsWith('C:\\') || imageParamValue.startsWith('/')) {
+              // Check if it's a file path (not base64 data)
+              if (!imageParamValue.startsWith('data:') && !imageParamValue.match(/^[A-Za-z0-9+/]+=*$/)) {
                 const fs = require('fs');
-                const buffer = fs.readFileSync(imageParamValue);
-                imageData = buffer.toString('base64');
+                const path = require('path');
+                try {
+                  const resolvedPath = path.resolve(imageParamValue);
+                  if (fs.existsSync(resolvedPath)) {
+                    const buffer = fs.readFileSync(resolvedPath);
+                    imageData = buffer.toString('base64');
+                  }
+                } catch (e) {
+                  // If it fails, assume it's already base64 data
+                }
               }
 
               // Add image to corresponding ControlNet unit
@@ -438,13 +511,69 @@ export class MCPServer {
       let response;
       switch (preset.type) {
         case 'txt2img':
+          // Comprehensive payload logging before API call
+          const fs = require('fs');
+          const path = require('path');
+          const payloadLogPath = path.join(process.cwd(), 'payload-debug.log');
+          const timestamp = new Date().toISOString();
+          fs.appendFileSync(payloadLogPath, `\n========== txt2img API Call at ${timestamp} ==========\n`);
+          fs.appendFileSync(payloadLogPath, `Preset: ${presetName}\n`);
+          fs.appendFileSync(payloadLogPath, `\n--- Core Parameters ---\n`);
+          fs.appendFileSync(payloadLogPath, `prompt: "${payload.prompt}"\n`);
+          fs.appendFileSync(payloadLogPath, `negative_prompt: "${payload.negative_prompt || ''}"\n`);
+          fs.appendFileSync(payloadLogPath, `steps: ${payload.steps}\n`);
+          fs.appendFileSync(payloadLogPath, `cfg_scale: ${payload.cfg_scale}\n`);
+          fs.appendFileSync(payloadLogPath, `sampler_name: "${payload.sampler_name}"\n`);
+          fs.appendFileSync(payloadLogPath, `clip_skip: ${payload.clip_skip}\n`);
+          fs.appendFileSync(payloadLogPath, `width: ${payload.width}\n`);
+          fs.appendFileSync(payloadLogPath, `height: ${payload.height}\n`);
+          fs.appendFileSync(payloadLogPath, `seed: ${payload.seed}\n`);
+          fs.appendFileSync(payloadLogPath, `batch_size: ${payload.batch_size}\n`);
+          fs.appendFileSync(payloadLogPath, `n_iter: ${payload.n_iter}\n`);
+          fs.appendFileSync(payloadLogPath, `enable_hr: ${payload.enable_hr}\n`);
+          fs.appendFileSync(payloadLogPath, `denoising_strength: ${payload.denoising_strength}\n`);
+
+          fs.appendFileSync(payloadLogPath, `\n--- Model Checkpoint ---\n`);
+          fs.appendFileSync(payloadLogPath, `checkpoint_from_preset: "${preset.base_settings?.checkpoint || 'not specified'}"\n`);
+          fs.appendFileSync(payloadLogPath, `override_checkpoint: "${payload.override_settings?.checkpoint || 'not specified'}"\n`);
+
+          if (payload.alwayson_scripts) {
+            fs.appendFileSync(payloadLogPath, `\n--- AlwaysOn Scripts ---\n`);
+            fs.appendFileSync(payloadLogPath, JSON.stringify(payload.alwayson_scripts, null, 2) + '\n');
+          }
+
+          fs.appendFileSync(payloadLogPath, `\n--- Full Payload ---\n`);
+          fs.appendFileSync(payloadLogPath, JSON.stringify(payload, (key, value) => {
+            // Truncate base64 image data for readability
+            if (typeof value === 'string' && value.length > 100 && value.match(/^[A-Za-z0-9+/]+=*$/)) {
+              return `[BASE64_DATA_${value.length}_CHARS]`;
+            }
+            return value;
+          }, 2) + '\n');
+          fs.appendFileSync(payloadLogPath, `========== End of payload log ==========\n\n`);
+
           response = await this.apiClient.txt2img(payload);
           break;
 
         case 'img2img':
           // Handle base64 image input
           if (params.init_image) {
-            payload.init_images = [params.init_image];
+            let initImageData = params.init_image;
+            // Check if it's a file path (not base64 data)
+            if (!params.init_image.startsWith('data:') && !params.init_image.match(/^[A-Za-z0-9+/]+=*$/)) {
+              const fs = require('fs');
+              const path = require('path');
+              try {
+                const resolvedPath = path.resolve(params.init_image);
+                if (fs.existsSync(resolvedPath)) {
+                  const buffer = fs.readFileSync(resolvedPath);
+                  initImageData = buffer.toString('base64');
+                }
+              } catch (e) {
+                // If it fails, assume it's already base64 data
+              }
+            }
+            payload.init_images = [initImageData];
           }
           response = await this.apiClient.img2img(payload);
           break;
@@ -454,10 +583,21 @@ export class MCPServer {
           if (params.image) {
             // Read image file and convert to base64 if it's a file path
             let imageData = params.image;
-            if (params.image.startsWith('C:\\') || params.image.startsWith('/')) {
-              const fs = require('fs');
-              const buffer = fs.readFileSync(params.image);
-              imageData = buffer.toString('base64');
+            // Check if it's a file path (not base64 data)
+            const fs = require('fs');
+            const path = require('path');
+            // If it looks like a path and not base64 data
+            if (!params.image.startsWith('data:') && !params.image.match(/^[A-Za-z0-9+/]+=*$/)) {
+              try {
+                // Try to resolve the path and check if file exists
+                const resolvedPath = path.resolve(params.image);
+                if (fs.existsSync(resolvedPath)) {
+                  const buffer = fs.readFileSync(resolvedPath);
+                  imageData = buffer.toString('base64');
+                }
+              } catch (e) {
+                // If it fails, assume it's already base64 data
+              }
             }
             response = await this.apiClient.pngInfo(imageData);
           } else {
@@ -473,10 +613,19 @@ export class MCPServer {
           if (params.image) {
             // Read image file and convert to base64 if it's a file path
             let imageData = params.image;
-            if (params.image.startsWith('C:\\') || params.image.startsWith('/')) {
+            // Check if it's a file path (not base64 data)
+            if (!params.image.startsWith('data:') && !params.image.match(/^[A-Za-z0-9+/]+=*$/)) {
               const fs = require('fs');
-              const buffer = fs.readFileSync(params.image);
-              imageData = buffer.toString('base64');
+              const path = require('path');
+              try {
+                const resolvedPath = path.resolve(params.image);
+                if (fs.existsSync(resolvedPath)) {
+                  const buffer = fs.readFileSync(resolvedPath);
+                  imageData = buffer.toString('base64');
+                }
+              } catch (e) {
+                // If it fails, assume it's already base64 data
+              }
             }
             payload.image = imageData;
             response = await this.apiClient.extrasSingleImage(payload);
@@ -588,10 +737,19 @@ export class MCPServer {
           if (params.image) {
             // Read image file and convert to base64 if it's a file path
             let imageData = params.image;
-            if (params.image.startsWith('C:\\') || params.image.startsWith('/')) {
+            // Check if it's a file path (not base64 data)
+            if (!params.image.startsWith('data:') && !params.image.match(/^[A-Za-z0-9+/]+=*$/)) {
               const fs = require('fs');
-              const buffer = fs.readFileSync(params.image);
-              imageData = buffer.toString('base64');
+              const path = require('path');
+              try {
+                const resolvedPath = path.resolve(params.image);
+                if (fs.existsSync(resolvedPath)) {
+                  const buffer = fs.readFileSync(resolvedPath);
+                  imageData = buffer.toString('base64');
+                }
+              } catch (e) {
+                // If it fails, assume it's already base64 data
+              }
             }
             payload.image = imageData;
             response = await this.apiClient.interrogate(payload);

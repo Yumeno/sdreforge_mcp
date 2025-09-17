@@ -150,15 +150,43 @@ export class PresetManager {
       ...userParams
     };
 
-    // Apply prompt template if present
+    // Apply prompt template with complete config aggregation
     if (preset.prompt_template && userParams.prompt) {
-      const promptResult = PromptHandler.mergePrompts(
-        userParams.prompt,
-        preset.prompt_template
-      );
-      basePayload.prompt = promptResult.prompt;
-      if (promptResult.negative_prompt) {
-        basePayload.negative_prompt = promptResult.negative_prompt;
+      // Aggregate complete Regional Prompter configuration (defaults + user overrides)
+      const finalRpConfig = {
+        rp_active: userParams.rp_active ?? preset.extensions?.regional_prompter?.rp_active ?? false,
+        rp_use_common: userParams.rp_use_common ?? preset.extensions?.regional_prompter?.rp_use_common ?? false,
+        rp_use_base: userParams.rp_use_base ?? preset.extensions?.regional_prompter?.rp_use_base ?? false,
+        rp_use_ncommon: userParams.rp_use_ncommon ?? preset.extensions?.regional_prompter?.rp_use_ncommon ?? false,
+        rp_not_change_and: userParams.rp_not_change_and ?? preset.extensions?.regional_prompter?.rp_not_change_and ?? false,
+        rp_use_neg_common: userParams.rp_use_neg_common ?? false
+      };
+
+      // Check if Regional Prompter syntax is present AND user enabled it
+      const hasRpSyntax = PromptHandler.hasRegionalPrompterSyntax(userParams.prompt);
+
+      if (hasRpSyntax && finalRpConfig.rp_active) {
+        // Use Regional Prompter aware prompt processing with aggregated config
+        const promptResult = PromptHandler.mergePromptsWithRegionalPrompter(
+          userParams.prompt,
+          preset.prompt_template,
+          finalRpConfig,  // Pass the entire config directly - already has rp_ prefix
+          userParams.negative_prompt
+        );
+        basePayload.prompt = promptResult.prompt;
+        if (promptResult.negative_prompt) {
+          basePayload.negative_prompt = promptResult.negative_prompt;
+        }
+      } else {
+        // Standard prompt processing
+        const promptResult = PromptHandler.mergePrompts(
+          userParams.prompt,
+          preset.prompt_template
+        );
+        basePayload.prompt = promptResult.prompt;
+        if (promptResult.negative_prompt) {
+          basePayload.negative_prompt = promptResult.negative_prompt;
+        }
       }
     }
 
@@ -271,6 +299,31 @@ export class PresetManager {
           extensions.dynamic_prompts.max_generations || 0,              // 16: max_generations
           "magic_prompt",                                               // 17: magic_model
           ""                                                            // 18: magic_blocklist_regex
+        ]
+      };
+    }
+
+    // Regional Prompter
+    if (extensions.regional_prompter?.rp_active) {
+      scripts['Regional Prompter'] = {
+        args: [
+          extensions.regional_prompter.rp_active || false,             // 1: active
+          extensions.regional_prompter.rp_debug || false,             // 2: debug
+          extensions.regional_prompter.rp_mode || 'Matrix',           // 3: mode
+          extensions.regional_prompter.rp_matrix_submode || 'Columns', // 4: matrix_submode
+          extensions.regional_prompter.rp_mask_submode || 'Mask',     // 5: mask_submode
+          extensions.regional_prompter.rp_prompt_submode || 'Prompt', // 6: prompt_submode
+          extensions.regional_prompter.rp_divide_ratio || '1,1',      // 7: divide_ratio
+          extensions.regional_prompter.rp_base_ratio || '0.2',        // 8: base_ratio
+          extensions.regional_prompter.rp_use_base !== undefined ?
+            extensions.regional_prompter.rp_use_base : true,          // 9: use_base
+          extensions.regional_prompter.rp_use_common || false,        // 10: use_common
+          extensions.regional_prompter.rp_use_ncommon || false,       // 11: use_ncommon
+          extensions.regional_prompter.rp_calc_mode || 'Attention',   // 12: calc_mode
+          extensions.regional_prompter.rp_not_change_and || false,    // 13: not_change_and
+          extensions.regional_prompter.rp_lora_stop_step || '0',      // 14: lora_stop_step
+          extensions.regional_prompter.rp_lora_hires_stop_step || '0', // 15: lora_hires_stop_step
+          extensions.regional_prompter.rp_threshold || '0.4'          // 16: threshold
         ]
       };
     }

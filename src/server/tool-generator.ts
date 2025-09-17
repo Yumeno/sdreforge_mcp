@@ -282,6 +282,70 @@ export class ToolGenerator {
           description: 'Use fixed seed for wildcards (recommended for combinatorial generation)',
           default: true
         };
+
+        // Regional Prompter parameters
+        schema.rp_active = {
+          type: 'boolean',
+          description: 'Enable Regional Prompter for region-based prompt control',
+          default: false
+        };
+        schema.rp_mode = {
+          type: 'string',
+          description: 'Regional Prompter mode: "Matrix" (grid) or "Mask" (custom shapes)',
+          default: 'Matrix'
+        };
+        schema.rp_matrix_submode = {
+          type: 'string',
+          description: 'Matrix submode: "Columns" (vertical split), "Rows" (horizontal split), "Cols;Rows" (grid)',
+          default: 'Columns'
+        };
+        schema.rp_divide_ratio = {
+          type: 'string',
+          description: 'Division ratios (e.g., "1,1" = 50/50, "1,2,1" = 25/50/25)',
+          default: '1,1'
+        };
+        schema.rp_calc_mode = {
+          type: 'string',
+          description: 'Calculation mode: "Attention" (soft boundaries) or "Latent" (hard boundaries)',
+          default: 'Attention'
+        };
+
+        // Mask Mode parameters
+        schema.rp_mask_1 = {
+          type: 'string',
+          description: 'Mask image file path for region 1 (Mask mode only)'
+        };
+        schema.rp_mask_2 = {
+          type: 'string',
+          description: 'Mask image file path for region 2 (Mask mode only)'
+        };
+        schema.rp_mask_3 = {
+          type: 'string',
+          description: 'Mask image file path for region 3 (Mask mode only)'
+        };
+        schema.rp_prompt_1 = {
+          type: 'string',
+          description: 'Prompt for region 1 (Mask mode only)'
+        };
+        schema.rp_prompt_2 = {
+          type: 'string',
+          description: 'Prompt for region 2 (Mask mode only)'
+        };
+        schema.rp_prompt_3 = {
+          type: 'string',
+          description: 'Prompt for region 3 (Mask mode only)'
+        };
+
+        // Negative prompt parameters
+        schema.rp_use_neg_common = {
+          type: 'boolean',
+          description: 'Use common negative prompt for all regions',
+          default: false
+        };
+        schema.negative_prompt = {
+          type: 'string',
+          description: 'User negative prompt (supports Regional Prompter syntax)'
+        };
       } else {
         // Standard ControlNet handling for other presets
         schema.controlnet_image = {

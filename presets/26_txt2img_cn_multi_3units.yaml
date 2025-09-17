@@ -60,14 +60,32 @@
 #   magic_prompt=true
 #   # AI automatically enhances and details the prompt
 #
+# Regional Prompter Matrix Mode:
+#   prompt="2 girls ADDBASE red hair, blue eyes ADDCOL green hair, red eyes"
+#   rp_active=true
+#   rp_mode="Matrix"
+#   rp_matrix_submode="Columns"
+#   rp_divide_ratio="1,1"
+#
+# Regional Prompter Mask Mode:
+#   prompt="fantasy warrior"
+#   rp_active=true
+#   rp_mode="Mask"
+#   rp_mask_1="face_area.png"
+#   rp_mask_2="body_area.png"
+#   rp_prompt_1="beautiful detailed face"
+#   rp_prompt_2="golden armor"
+#
 # Complete Feature Combination:
-#   prompt="masterpiece {cute|cool} anime girl"
+#   prompt="masterpiece {cute|cool} anime girl ADDBASE red hair ADDCOL blue hair"
 #   enable_hr=true
 #   hr_scale=1.5
 #   controlnet_image="pose.png"
 #   controlnet_model_1="CN-anytest3_animagine4_A"
 #   adetailer_model_2="hand_yolov8n.pt"
 #   enable_dynamic_prompts=true
+#   rp_active=true
+#   rp_divide_ratio="1,1"
 #   batch_size=2
 #   n_iter=3
 #
@@ -90,7 +108,7 @@ base_settings:
   n_iter: 1
   enable_hr: false
   denoising_strength: 0.4
-  clip_skip: 2
+  clip_skip: 1
 
   # Hires Fix default settings (user can override)
   hr_scale: 2.0
@@ -162,7 +180,7 @@ extensions:
       # Override with: controlnet_model_2, controlnet_weight_2, controlnet_module_2
       - module: "None"
         model: "CN-anytest3_animagine4_B"
-        weight: 0.8
+        weight: 1.0
         guidance_start: 0.0
         guidance_end: 0.7   # Ends earlier for subtle effect
         control_mode: 0
@@ -176,7 +194,7 @@ extensions:
       # Override with: controlnet_model_3, controlnet_weight_3, controlnet_module_3
       - module: "None"
         model: "CN-anytest4_animagine4_A"
-        weight: 0.6
+        weight: 1.0
         guidance_start: 0.0
         guidance_end: 0.5   # Subtle effect only
         control_mode: 0
@@ -194,3 +212,25 @@ extensions:
     combinatorial_generation: false
     max_generations: 0             # 0 = unlimited
     magic_prompt: false
+
+  # Regional Prompter: Region-based prompt control (Matrix & Mask modes)
+  # Usage Matrix: "2 girls ADDBASE red hair ADDCOL green hair" or "sky BREAK mountains BREAK lake"
+  # Usage Mask: Provide rp_mask_1, rp_mask_2 with corresponding rp_prompt_1, rp_prompt_2
+  # Override with: rp_active, rp_mode, rp_matrix_submode, rp_divide_ratio, rp_calc_mode
+  regional_prompter:
+    rp_active: false               # Default disabled (optional feature)
+    rp_debug: false
+    rp_mode: "Matrix"              # "Matrix" or "Mask"
+    rp_matrix_submode: "Columns"   # "Columns", "Rows", "Cols;Rows"
+    rp_mask_submode: "Mask"
+    rp_prompt_submode: "Prompt"
+    rp_divide_ratio: "1,1"         # Split ratios (e.g., "1,1" = 50/50, "1,2,1" = 25/50/25)
+    rp_base_ratio: "0.2"           # Base influence (0.0-1.0)
+    rp_use_base: true
+    rp_use_common: false
+    rp_use_ncommon: false
+    rp_calc_mode: "Attention"      # "Attention" (soft) or "Latent" (hard)
+    rp_not_change_and: false
+    rp_lora_stop_step: "0"
+    rp_lora_hires_stop_step: "0"
+    rp_threshold: "0.4"

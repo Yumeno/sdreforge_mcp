@@ -180,7 +180,26 @@ export interface ControlNetUnit {
  * Regional Prompter configuration
  */
 export interface RegionalPrompterConfig {
-  enabled: boolean;
+  // New property names for 26th preset
+  rp_active?: boolean;
+  rp_debug?: boolean;
+  rp_mode?: 'Matrix' | 'Mask' | 'Prompt';
+  rp_matrix_submode?: 'Columns' | 'Rows' | 'Cols;Rows';
+  rp_mask_submode?: string;
+  rp_prompt_submode?: string;
+  rp_divide_ratio?: string;
+  rp_base_ratio?: string;
+  rp_use_base?: boolean;
+  rp_use_common?: boolean;
+  rp_use_ncommon?: boolean;
+  rp_calc_mode?: 'Attention' | 'Latent';
+  rp_not_change_and?: boolean;
+  rp_lora_stop_step?: string;
+  rp_lora_hires_stop_step?: string;
+  rp_threshold?: string;
+
+  // Legacy property names for compatibility
+  enabled?: boolean;
   mode?: 'Matrix' | 'Mask' | 'Prompt';
   split_mode?: 'Horizontal' | 'Vertical' | 'Random';
   split_ratio?: string;
