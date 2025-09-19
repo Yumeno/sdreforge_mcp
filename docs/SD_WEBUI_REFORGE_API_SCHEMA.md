@@ -170,31 +170,41 @@ GET  /sdapi/v1/schedulers        - 利用可能なスケジューラー一覧
 - `"Resize and Fill"` - リサイズ＆フィル（2）
 
 ### 4.3 Regional Prompter
+
+**⚠️ 重要**: GitHub Issue #408 により一部バージョンで動作不良あり（2025年9月19日確認）
+
+**更新**: Mask モードが API 経由でも動作可能になりました（2025年9月19日）
+
 ```json
 "alwayson_scripts": {
   "Regional Prompter": {
     "args": [
-      true,                  // active
-      false,                 // debug
-      "Matrix",              // mode: "Matrix" or "Mask"
-      "Rows",                // type: "Rows", "Columns", etc.
-      "1,1",                 // ratios
-      "0.2",                 // base_ratios
-      false,                 // use_base
-      true,                  // use_common
-      false,                 // use_ncommon
-      "Attention",          // options
-      "",                   // mask (for Mask mode)
-      "ADDCOMM",            // main_prompt placeholder
-      "",                   // negative prompt
-      "region1 ADDCOMM",    // region 1 prompt
-      "region2 ADDCOMM",    // region 2 prompt
-      "",                   // region 1 negative
-      ""                    // region 2 negative
+      true,                  // 1. active (有効/無効)
+      false,                 // 2. debug (デバッグモード)
+      "Matrix",              // 3. mode: "Matrix", "Mask", "Prompt"
+      "Columns",             // 4. matrix_submode: "Columns", "Rows", "Cols;Rows"
+      "Mask",                // 5. mask_submode: "Mask"
+      "Prompt",              // 6. prompt_submode: "Prompt"
+      "1,1",                 // 7. divide_ratio (分割比率)
+      "0.2,0.2,0.2",        // 8. base_ratio (ベース比率、領域数+1)
+      true,                  // 9. use_base (ベースプロンプト使用)
+      false,                 // 10. use_common (共通プロンプト使用)
+      false,                 // 11. use_ncommon (共通ネガティブ使用)
+      "Attention",           // 12. calc_mode: "Attention" or "Latent"
+      false,                 // 13. not_change_and (未使用)
+      "0",                   // 14. lora_stop_step
+      "0",                   // 15. lora_hires_stop
+      "0.4",                 // 16. threshold
+      "base64_mask_data"    // 17. polymask (Maskモード用、Base64エンコード)
     ]
   }
 }
 ```
+
+**Mask モード使用時の注意**:
+- 17番目のパラメータに合成済みカラーマスクを Base64 形式で送信
+- MCP サーバー側で白黒マスクをカラーコード化する必要あり
+- `deterministic_colours` アルゴリズムによる色生成が必要
 
 ### 4.4 Dynamic Prompts
 ```json

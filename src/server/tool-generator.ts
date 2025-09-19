@@ -291,8 +291,9 @@ export class ToolGenerator {
         };
         schema.rp_mode = {
           type: 'string',
-          description: 'Regional Prompter mode: "Matrix" (grid) or "Mask" (custom shapes)',
-          default: 'Matrix'
+          description: 'Regional Prompter mode: Only "Matrix" (grid) is supported via API. Mask and Prompt modes are not supported.',
+          default: 'Matrix',
+          enum: ['Matrix']  // Only allow Matrix mode
         };
         schema.rp_matrix_submode = {
           type: 'string',
@@ -310,30 +311,30 @@ export class ToolGenerator {
           default: 'Attention'
         };
 
-        // Mask Mode parameters
+        // Mask Mode parameters (Note: These are not functional via API - Mask mode is not supported)
         schema.rp_mask_1 = {
           type: 'string',
-          description: 'Mask image file path for region 1 (Mask mode only)'
+          description: 'NOT SUPPORTED VIA API - Mask mode is not functional through API calls'
         };
         schema.rp_mask_2 = {
           type: 'string',
-          description: 'Mask image file path for region 2 (Mask mode only)'
+          description: 'NOT SUPPORTED VIA API - Mask mode is not functional through API calls'
         };
         schema.rp_mask_3 = {
           type: 'string',
-          description: 'Mask image file path for region 3 (Mask mode only)'
+          description: 'NOT SUPPORTED VIA API - Mask mode is not functional through API calls'
         };
         schema.rp_prompt_1 = {
           type: 'string',
-          description: 'Prompt for region 1 (Mask mode only)'
+          description: 'NOT SUPPORTED VIA API - Mask/Prompt mode is not functional through API calls'
         };
         schema.rp_prompt_2 = {
           type: 'string',
-          description: 'Prompt for region 2 (Mask mode only)'
+          description: 'NOT SUPPORTED VIA API - Mask/Prompt mode is not functional through API calls'
         };
         schema.rp_prompt_3 = {
           type: 'string',
-          description: 'Prompt for region 3 (Mask mode only)'
+          description: 'NOT SUPPORTED VIA API - Mask/Prompt mode is not functional through API calls'
         };
 
         // Negative prompt parameters

@@ -14,6 +14,8 @@ import { ToolGenerator } from './tool-generator';
 import { ServerConfig, ToolExecutionResult } from './types';
 import * as fs from 'fs';
 import * as path from 'path';
+const { Jimp } = require('jimp');
+const { intToRGBA, rgbaToInt } = require('@jimp/utils');
 
 export class MCPServer {
   private server: Server;
@@ -117,6 +119,138 @@ export class MCPServer {
   /**
    * Execute a tool
    */
+  /**
+   * Combine multiple black & white masks into a single colored mask for Regional Prompter
+   */
+  async combineMasks(maskPaths: string[]): Promise<string> {
+    const debugLogPath = path.join(process.cwd(), 'mcp-tool-execution.log');
+
+    if (!maskPaths || maskPaths.length === 0) {
+      throw new Error('No mask paths provided');
+    }
+
+    // Generate colors using the same deterministic algorithm as Regional Prompter
+    const deterministic_colours = (n: number): Array<[number, number, number]> => {
+      const colors: Array<[number, number, number]> = [];
+      let pcyc = -1;
+      let cval = 0;
+      let dlt = 0;
+
+      for (let i = 0; i < n; i++) {
+        const ccyc = Math.ceil(Math.log2(i + 1));
+
+        if (ccyc === 0) { // First col = 0
+          cval = 0;
+          pcyc = ccyc;
+        } else if (pcyc !== ccyc) { // New cycle, start from the half point between 0 and first point
+          dlt = 1 / Math.pow(2, ccyc);
+          cval = dlt;
+          pcyc = ccyc;
+        } else {
+          cval = cval + 2 * dlt; // Jumps over existing vals
+        }
+
+        // HSV to RGB conversion (H=cval, S=0.5, V=0.5)
+        const h = cval;
+        const s = 0.5;
+        const v = 0.5;
+
+        const c = v * s;
+        const x = c * (1 - Math.abs(((h * 6) % 2) - 1));
+        const m = v - c;
+
+        let r = 0, g = 0, b = 0;
+        if (h < 1/6) { r = c; g = x; b = 0; }
+        else if (h < 2/6) { r = x; g = c; b = 0; }
+        else if (h < 3/6) { r = 0; g = c; b = x; }
+        else if (h < 4/6) { r = 0; g = x; b = c; }
+        else if (h < 5/6) { r = x; g = 0; b = c; }
+        else { r = c; g = 0; b = x; }
+
+        // Convert to 0-255 range (CBLACK = 255)
+        colors.push([
+          Math.round((r + m) * 256),  // Note: 256 not 255, to match (CBLACK + 1)
+          Math.round((g + m) * 256),
+          Math.round((b + m) * 256)
+        ]);
+      }
+
+      return colors;
+    };
+
+    try {
+      // Load all masks
+      const masks = await Promise.all(maskPaths.map(async (path) => {
+        const img = await Jimp.read(path);
+        return img;
+      }));
+
+      if (masks.length === 0) {
+        throw new Error('No masks loaded successfully');
+      }
+
+      // Get dimensions from first mask
+      const width = masks[0].bitmap.width;
+      const height = masks[0].bitmap.height;
+
+      // Create combined mask with black background
+      const combined = new Jimp({ width, height, color: 0x000000FF });
+
+      // Generate colors for regions
+      // Index 0 is background (black), index 1-n are for the mask regions
+      const regionColors = deterministic_colours(masks.length + 1);
+
+      fs.appendFileSync(debugLogPath, `Combining ${masks.length} masks, dimensions: ${width}x${height}\n`);
+      fs.appendFileSync(debugLogPath, `Generated colors: ${JSON.stringify(regionColors)}\n`);
+
+      // Process each mask
+      for (let maskIndex = 0; maskIndex < masks.length; maskIndex++) {
+        const mask = masks[maskIndex];
+        const regionIndex = maskIndex + 1; // Region 1, 2, 3... (0 is background)
+        const [r, g, b] = regionColors[regionIndex];
+
+        fs.appendFileSync(debugLogPath, `Processing mask ${maskIndex} as region ${regionIndex} with color RGB(${r},${g},${b})\n`);
+
+        // Scan through each pixel (use arrow function to avoid 'this' context issues)
+        mask.scan(0, 0, width, height, (x: number, y: number, idx: number) => {
+          // Get mask pixel color
+          const pixelColor = mask.getPixelColor(x, y);
+          const { r: mr, g: mg, b: mb } = intToRGBA(pixelColor);
+
+          // Check if pixel is white (mask area)
+          if (mr > 128 || mg > 128 || mb > 128) {
+            // Check if combined mask is still black at this position
+            const currentColor = combined.getPixelColor(x, y);
+            const { r: cr, g: cg, b: cb } = intToRGBA(currentColor);
+
+            if (cr === 0 && cg === 0 && cb === 0) { // Still black (uncolored)
+              // Set the region color
+              const newColor = rgbaToInt(r, g, b, 255);
+              combined.setPixelColor(newColor, x, y);
+            }
+          }
+        });
+      }
+
+      // Save combined mask for debugging
+      const debugMaskPath = path.join(process.cwd(), 'output', `combined_mask_${Date.now()}.png`);
+      await combined.write(debugMaskPath);
+      fs.appendFileSync(debugLogPath, `Saved combined mask to: ${debugMaskPath}\n`);
+
+      // Convert to base64
+      const buffer = await combined.getBuffer("image/png");
+      const base64 = buffer.toString('base64');
+
+      fs.appendFileSync(debugLogPath, `Successfully combined masks into base64 (size: ${base64.length})\n`);
+
+      return base64;
+
+    } catch (error) {
+      fs.appendFileSync(debugLogPath, `Error in combineMasks: ${error}\n`);
+      throw error;
+    }
+  }
+
   async executeTool(toolName: string, params: any): Promise<ToolExecutionResult> {
     try {
       // Debug: Log all received parameters to file
@@ -134,6 +268,16 @@ export class MCPServer {
           error: `Preset not found: ${presetName}`
         };
       }
+
+      // Check for unsupported Regional Prompter modes BEFORE generating payload
+      // TEMPORARILY DISABLED - Mask/Prompt modes may not work correctly via API (REGUSE variable issue)
+      // if (params.rp_active && (params.rp_mode === 'Mask' || params.rp_mode === 'Prompt')) {
+      //   fs.appendFileSync(debugLogPath, `Error: Regional Prompter ${params.rp_mode} mode is not supported via API\n`);
+      //   return {
+      //     success: false,
+      //     error: `Regional Prompter ${params.rp_mode} mode is not supported via API. Please use Matrix mode (Columns/Rows) instead. See docs/regional-prompter-mask-mode-api-investigation.md for details.`
+      //   };
+      // }
 
       // Generate payload from preset and user params
       const payload = this.toolGenerator.getPresetManager().presetToPayload(preset, params);
@@ -284,7 +428,45 @@ export class MCPServer {
           // Initialize Regional Prompter if not exists
           if (!payload.alwayson_scripts) payload.alwayson_scripts = {};
 
-          // Build 16-argument structure
+          // Adjust base_ratio for Mask mode based on BREAK count
+          let baseRatioValue = params.rp_base_ratio || '0.2';
+
+          // Fix for bratios persistence issue - ensure proper initialization
+          if (!baseRatioValue || baseRatioValue === '' || baseRatioValue === '[]' || baseRatioValue === '[][]') {
+            baseRatioValue = '0.2';
+            fs.appendFileSync(debugLogPath, `Warning: bratios was empty or invalid, reset to default: "${baseRatioValue}"\n`);
+          }
+
+          // Validation - ensure baseRatioValue is never empty
+          if (!baseRatioValue || baseRatioValue.trim() === '') {
+            baseRatioValue = '0.2';
+            fs.appendFileSync(debugLogPath, `Validation: baseRatioValue was empty, set to: "${baseRatioValue}"\n`);
+          }
+
+          // Handle mask combination for Mask mode
+          let polymaskData: string | null = null;
+          if (params.rp_mode === 'Mask') {
+            // Combine user-provided masks into a single colored mask
+            const maskPaths: string[] = [];
+            if (params.rp_mask_1) maskPaths.push(params.rp_mask_1);
+            if (params.rp_mask_2) maskPaths.push(params.rp_mask_2);
+            if (params.rp_mask_3) maskPaths.push(params.rp_mask_3);
+
+            if (maskPaths.length > 0) {
+              fs.appendFileSync(debugLogPath, `Combining ${maskPaths.length} masks for Regional Prompter\n`);
+              try {
+                const combinedMaskBase64 = await this.combineMasks(maskPaths);
+                if (combinedMaskBase64) {
+                  polymaskData = combinedMaskBase64;
+                  fs.appendFileSync(debugLogPath, `Successfully combined masks into base64 data (length: ${combinedMaskBase64.length})\n`);
+                }
+              } catch (error) {
+                fs.appendFileSync(debugLogPath, `Error combining masks: ${error}\n`);
+              }
+            }
+          }
+
+          // Build 16+1 argument structure (17 total for Mask mode)
           const rpArgs = [
             params.rp_active || false,                           // 1: active
             params.rp_debug || false,                           // 2: debug
@@ -293,7 +475,7 @@ export class MCPServer {
             params.rp_mask_submode || 'Mask',                   // 5: mask_submode
             params.rp_prompt_submode || 'Prompt',               // 6: prompt_submode
             params.rp_divide_ratio || '1,1',                    // 7: divide_ratio
-            params.rp_base_ratio || '0.2',                      // 8: base_ratio
+            baseRatioValue,                                      // 8: base_ratio (adjusted for Mask mode)
             params.rp_use_base !== undefined ? params.rp_use_base : true,     // 9: use_base
             params.rp_use_common || false,                      // 10: use_common
             params.rp_use_ncommon || false,                     // 11: use_ncommon
@@ -304,37 +486,18 @@ export class MCPServer {
             params.rp_threshold || '0.4'                        // 16: threshold
           ];
 
-          // For Mask mode, add mask processing
-          if (params.rp_mode === 'Mask') {
-            // Process mask images
-            const maskImages = [];
-            for (let i = 1; i <= 3; i++) {
-              const maskParam = params[`rp_mask_${i}`];
-              if (maskParam) {
-                let maskData = maskParam;
-                if (maskParam.startsWith('C:\\') || maskParam.startsWith('/')) {
-                  const fs = require('fs');
-                  const buffer = fs.readFileSync(maskParam);
-                  maskData = buffer.toString('base64');
-                }
-                maskImages.push(maskData);
-                fs.appendFileSync(debugLogPath, `Added Regional Prompter mask ${i}: ${maskParam}\n`);
-              }
-            }
-
-            // Build region prompts for mask mode
-            const regionPrompts = [];
-            for (let i = 1; i <= 3; i++) {
-              const promptParam = params[`rp_prompt_${i}`];
-              if (promptParam) {
-                regionPrompts.push(promptParam);
-                fs.appendFileSync(debugLogPath, `Added Regional Prompter prompt ${i}: ${promptParam}\n`);
-              }
-            }
-
-            // Update args for mask mode (add mask data)
-            rpArgs.push(...maskImages); // Add mask images to args
+          // Add 17th parameter for Mask mode
+          if (params.rp_mode === 'Mask' && polymaskData) {
+            rpArgs.push(polymaskData);  // 17: polymask (combined mask as base64)
+            fs.appendFileSync(debugLogPath, `Added polymask as 17th parameter\n`);
           }
+
+          // Log the final rpArgs for debugging
+          fs.appendFileSync(debugLogPath, `Final Regional Prompter args:\n${JSON.stringify(rpArgs.slice(0, 16), null, 2)}\n`);
+          if (rpArgs.length > 16) {
+            fs.appendFileSync(debugLogPath, `Plus polymask data (17th param, length: ${rpArgs[16].length})\n`);
+          }
+          fs.appendFileSync(debugLogPath, `Specifically - base_ratio (arg[7]): "${rpArgs[7]}"\n`);
 
           payload.alwayson_scripts['Regional Prompter'] = {
             args: rpArgs

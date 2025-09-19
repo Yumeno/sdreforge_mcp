@@ -91,15 +91,24 @@ controlnet:
 ```
 
 #### Regional Prompter（領域別プロンプト）
+
+**⚠️ 注意**: GitHub Issue #408により一部バージョンで動作不良あり（2025年9月19日確認）
+**✅ 更新**: Mask モードがAPI経由でも動作可能に（2025年9月19日）
+
 ```yaml
 regional_prompter:
   enabled: true
-  mode: "Matrix"
-  split_mode: "Horizontal"
-  split_ratio: "1,1"
-  regions:
-    - "1girl, red hair"
-    - "blue sky, clouds"
+  mode: "Matrix"        # Matrix, Mask, Prompt (API経由ではMatrixとMaskが動作確認済み)
+  split_mode: "Columns" # Columns, Rows, Cols;Rows (Matrixモード用)
+  split_ratio: "1,1"    # 分割比率
+  base_ratio: "0.2"     # ベースプロンプトの比率
+  use_base: true        # ベースプロンプトを使用
+  use_common: false     # 共通プロンプトを使用
+  calc_mode: "Attention" # Attention or Latent
+  # Maskモード用（MCPサーバーが自動処理）
+  mask_paths:           # 白黒マスク画像のパス（複数指定可）
+    - "mask1.png"
+    - "mask2.png"
 ```
 
 #### Dynamic Prompts（動的プロンプト）
