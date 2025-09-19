@@ -8,8 +8,10 @@ import { MCPTool } from './types';
 
 export class ToolGenerator {
   private presetManager: PresetManager;
+  private presetsDir: string;
 
   constructor(presetsDir: string = './presets') {
+    this.presetsDir = presetsDir;
     this.presetManager = new PresetManager(presetsDir);
   }
 
@@ -82,6 +84,7 @@ export class ToolGenerator {
    */
   private generateInputSchema(preset: Preset): Record<string, any> {
     const schema: Record<string, any> = {};
+    const presetName = preset.name;
 
     // Skip prompt for non-generation tools
     const noPromptTypes = ['utility', 'extras', 'png-info', 'tagger', 'extras-single-image', 'rembg'];
@@ -120,7 +123,7 @@ export class ToolGenerator {
     // For ControlNet-enabled presets
     if (preset.extensions?.controlnet?.enabled) {
       // Special handling for fully parameterized preset (26)
-      if (preset.name === 'txt2img_cn_multi_3units') {
+      if (preset.name === 'txt2img_cn_multi_3units' || preset.name === 'img2img_cn_multi_3units') {
         // Fully parameterized ControlNet support
         schema.controlnet_image = {
           type: 'string',
@@ -347,6 +350,46 @@ export class ToolGenerator {
           type: 'string',
           description: 'User negative prompt (supports Regional Prompter syntax)'
         };
+
+        // img2img upscaler and inpaint support
+        if (preset.name === 'img2img_cn_multi_3units') {
+          schema.upscaler_model = {
+            type: 'string',
+            description: 'Upscaler model to use for img2img (e.g., "4x-UltraSharp", "R-ESRGAN 4x+ Anime6B")',
+            default: '4x_fatal_Anime_500000_G'
+          };
+
+          // Inpaint mode parameters (activated when mask_image is provided)
+          schema.mask_image = {
+            type: 'string',
+            description: 'Mask image file path (white=edit area, black=preserve)'
+          };
+          schema.mask_blur = {
+            type: 'number',
+            description: 'Blur mask edges for smooth blending (0-64)',
+            default: 4
+          };
+          schema.inpainting_fill = {
+            type: 'number',
+            description: '0=fill, 1=original, 2=latent noise, 3=latent nothing',
+            default: 1
+          };
+          schema.inpaint_full_res = {
+            type: 'boolean',
+            description: 'Process only masked area (true) or whole image (false)',
+            default: true
+          };
+          schema.inpaint_full_res_padding = {
+            type: 'number',
+            description: 'Padding pixels around mask (0-256)',
+            default: 0
+          };
+          schema.inpainting_mask_invert = {
+            type: 'number',
+            description: '0=normal mask, 1=invert mask',
+            default: 0
+          };
+        }
       } else {
         // Standard ControlNet handling for other presets
         schema.controlnet_image = {
@@ -426,6 +469,54 @@ export class ToolGenerator {
         minimum: 0,
         maximum: 1
       };
+
+      // Add upscaler model selection for preset 27
+      if (presetName === 'img2img_cn_multi_3units') {
+        schema.upscaler_model = {
+          type: 'string',
+          description: 'Upscaler model to use for img2img (e.g., "4x-UltraSharp", "R-ESRGAN 4x+ Anime6B")',
+          default: '4x_fatal_Anime_500000_G'
+        };
+
+        // Inpaint mode parameters (optional)
+        schema.mask_image = {
+          type: 'string',
+          description: 'Mask image file path (white=edit area, black=preserve)'
+        };
+        schema.mask_blur = {
+          type: 'number',
+          description: 'Mask blur radius in pixels',
+          default: 4,
+          minimum: 0,
+          maximum: 64
+        };
+        schema.inpainting_fill = {
+          type: 'number',
+          description: 'Inpaint filling mode: 0=fill, 1=original, 2=latent noise, 3=latent nothing',
+          default: 1,
+          minimum: 0,
+          maximum: 3
+        };
+        schema.inpaint_full_res = {
+          type: 'boolean',
+          description: 'Process only masked area (true) or whole image (false)',
+          default: true
+        };
+        schema.inpaint_full_res_padding = {
+          type: 'number',
+          description: 'Padding pixels around mask area when inpaint_full_res is true',
+          default: 0,
+          minimum: 0,
+          maximum: 256
+        };
+        schema.inpainting_mask_invert = {
+          type: 'number',
+          description: 'Mask inversion: 0=normal, 1=invert',
+          default: 0,
+          minimum: 0,
+          maximum: 1
+        };
+      }
     }
 
     return schema;
@@ -439,7 +530,36 @@ export class ToolGenerator {
       // Remove sdreforge_ prefix if present
       const cleanName = presetName.replace(/^sdreforge_/, '');
 
-      // Map preset names to file names
+      // Dynamically find preset file by name
+      const fs = require('fs');
+      const path = require('path');
+      const presetsDir = this.presetsDir;
+
+      // Look for preset file that matches the name
+      const files = fs.readdirSync(presetsDir);
+      let presetFile: string | null = null;
+
+      // Try direct match with numbered prefix
+      for (const file of files) {
+        if (file.endsWith('.yaml')) {
+          // Load the file to check the name
+          const filePath = path.join(presetsDir, file);
+          const content = fs.readFileSync(filePath, 'utf8');
+          const yaml = require('js-yaml');
+          const yamlContent = yaml.load(content);
+
+          if (yamlContent.name === cleanName) {
+            presetFile = file;
+            break;
+          }
+        }
+      }
+
+      if (presetFile) {
+        return this.presetManager.loadPreset(presetFile);
+      }
+
+      // Fallback to old static map for backward compatibility
       const fileNameMap: Record<string, string> = {
         'txt2img_animagine_no_adetailer': '00_txt2img_animagine_no_adetailer.yaml',
         'txt2img_animagine_base': '01_txt2img_animagine_base.yaml',

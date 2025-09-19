@@ -282,41 +282,158 @@ export class MCPServer {
       // Generate payload from preset and user params
       const payload = this.toolGenerator.getPresetManager().presetToPayload(preset, params);
 
+      // Debug: Check preset type
+      fs.appendFileSync(debugLogPath, `Preset type: ${preset.type}\n`);
+      console.log(`[DEBUG] Preset type: ${preset.type}`);
+
+      // Special handling for img2img - process file paths BEFORE switch statement
+      if (preset.type === 'img2img') {
+        fs.appendFileSync(debugLogPath, `[IMG2IMG] Entering img2img processing block\n`);
+        console.log(`[IMG2IMG] Processing with params keys: ${Object.keys(params).join(', ')}`);
+
+        // Handle base64 image input
+        if (params.init_image) {
+          let initImageData = params.init_image;
+          // Check if it's a file path (not base64 data)
+          // Windows path check: contains backslash or starts with drive letter
+          const isFilePath = params.init_image.includes('\\') || params.init_image.includes('/') || /^[A-Z]:/i.test(params.init_image);
+          if (isFilePath) {
+            try {
+              const resolvedPath = path.resolve(params.init_image);
+              if (fs.existsSync(resolvedPath)) {
+                const buffer = fs.readFileSync(resolvedPath);
+                initImageData = buffer.toString('base64');
+                console.log(`Loaded init_image from: ${resolvedPath}, base64 length: ${initImageData.length}`);
+              }
+            } catch (e) {
+              console.error(`Error loading init_image: ${e}`);
+            }
+          }
+          payload.init_images = [initImageData];
+        }
+
+        // Handle mask image for inpainting (preset 27 inpaint mode)
+        if (params.mask_image) {
+          console.log(`Processing mask image: ${params.mask_image}`);
+          let maskImageData = params.mask_image;
+          // Check if it's a file path (not base64 data)
+          const isMaskFilePath = params.mask_image.includes('\\') || params.mask_image.includes('/') || /^[A-Z]:/i.test(params.mask_image);
+          if (isMaskFilePath) {
+            try {
+              const resolvedPath = path.resolve(params.mask_image);
+              if (fs.existsSync(resolvedPath)) {
+                const buffer = fs.readFileSync(resolvedPath);
+                maskImageData = buffer.toString('base64');
+                console.log(`Loaded mask image from: ${resolvedPath}, base64 length: ${maskImageData.length}`);
+              }
+            } catch (e) {
+              console.error(`Error loading mask image: ${e}`);
+            }
+          }
+          payload.mask = maskImageData;
+
+          // Apply inpaint-specific parameters if provided
+          if (params.mask_blur !== undefined) payload.mask_blur = params.mask_blur;
+          if (params.inpainting_fill !== undefined) payload.inpainting_fill = params.inpainting_fill;
+          if (params.inpaint_full_res !== undefined) payload.inpaint_full_res = params.inpaint_full_res;
+          if (params.inpaint_full_res_padding !== undefined) payload.inpaint_full_res_padding = params.inpaint_full_res_padding;
+          if (params.inpainting_mask_invert !== undefined) payload.inpainting_mask_invert = params.inpainting_mask_invert;
+
+          console.log(`Inpaint mode enabled with mask_blur=${payload.mask_blur}, fill=${payload.inpainting_fill}, full_res=${payload.inpaint_full_res}`);
+          // Debug: Check mask data length
+          console.log(`Mask data length: ${payload.mask ? payload.mask.length : 0}`);
+          console.log(`Mask data prefix: ${payload.mask ? payload.mask.substring(0, 100) : 'none'}`);
+        }
+
+        // Clean up redundant fields that were copied from userParams
+        // The API expects init_images array and mask, not init_image and mask_image
+        delete payload.init_image;
+        delete payload.mask_image;
+
+        // Debug: Save payload to file
+        console.log('init_images[0] length:', payload.init_images?.[0]?.length);
+        console.log('mask length:', payload.mask?.length);
+      }
+
+      // Special handling for img2img upscaler
+      let originalUpscalerSetting: string | null = null;
+      if (presetName === 'img2img_cn_multi_3units' && params.upscaler_model) {
+        try {
+          // Get current upscaler setting
+          const currentOptions = await this.apiClient.getOptions();
+          originalUpscalerSetting = currentOptions.upscaler_for_img2img;
+
+          fs.appendFileSync(debugLogPath, `Original upscaler: ${originalUpscalerSetting}, Requested: ${params.upscaler_model}\n`);
+
+          // Change upscaler if different
+          if (originalUpscalerSetting !== params.upscaler_model) {
+            await this.apiClient.setOptions({
+              upscaler_for_img2img: params.upscaler_model
+            });
+
+            fs.appendFileSync(debugLogPath, `Changed upscaler from ${originalUpscalerSetting} to ${params.upscaler_model}\n`);
+          }
+        } catch (error) {
+          fs.appendFileSync(debugLogPath, `Error managing upscaler setting: ${error}\n`);
+        }
+      }
+
       // Special handling for fully parameterized ControlNet preset (26)
       fs.appendFileSync(debugLogPath, `Checking preset 26 conditions: presetName=${presetName}, has_alwayson=${!!payload.alwayson_scripts}, has_controlnet=${!!(payload.alwayson_scripts?.ControlNet)}, has_args=${!!(payload.alwayson_scripts?.ControlNet?.args)}\n`);
 
-      if (presetName === 'txt2img_cn_multi_3units' && payload.alwayson_scripts?.ControlNet?.args) {
+      if ((presetName === 'txt2img_cn_multi_3units' || presetName === 'img2img_cn_multi_3units') && payload.alwayson_scripts?.ControlNet?.args) {
         // Apply user parameter overrides to default ControlNet units
-        const units = payload.alwayson_scripts.ControlNet.args;
-
-        // Unit 0 overrides
-        if (units[0]) {
-          if (params.controlnet_model_1) units[0].model = params.controlnet_model_1;
-          if (params.controlnet_module_1) units[0].module = params.controlnet_module_1;
-          if (params.controlnet_weight_1 !== undefined) units[0].weight = params.controlnet_weight_1;
-        }
-
-        // Unit 1 overrides (enable if image provided)
-        if (units[1]) {
-          if (params.controlnet_image_2) units[1].enabled = true;
-          if (params.controlnet_model_2) units[1].model = params.controlnet_model_2;
-          if (params.controlnet_module_2) units[1].module = params.controlnet_module_2;
-          if (params.controlnet_weight_2 !== undefined) units[1].weight = params.controlnet_weight_2;
-        }
-
-        // Unit 2 overrides (enable if image provided)
-        if (units[2]) {
-          if (params.controlnet_image_3) units[2].enabled = true;
-          if (params.controlnet_model_3) units[2].model = params.controlnet_model_3;
-          if (params.controlnet_module_3) units[2].module = params.controlnet_module_3;
-          if (params.controlnet_weight_3 !== undefined) units[2].weight = params.controlnet_weight_3;
-        }
+        // Check if any ControlNet images are provided
+        const hasAnyControlNetImage = params.controlnet_image || params.controlnet_image_2 || params.controlnet_image_3;
 
         // Disable ControlNet entirely if no images provided
-        const hasAnyControlNetImage = params.controlnet_image || params.controlnet_image_2 || params.controlnet_image_3;
-        if (!hasAnyControlNetImage && payload.alwayson_scripts?.ControlNet) {
+        if (!hasAnyControlNetImage) {
           delete payload.alwayson_scripts.ControlNet;
           fs.appendFileSync(debugLogPath, `Disabled ControlNet entirely (no images provided)\n`);
+        } else {
+          // Only process units if ControlNet is enabled
+          const units = payload.alwayson_scripts.ControlNet.args;
+
+          // Unit 0 overrides (disable if no image AND model is not "None")
+          if (units[0]) {
+            if (!params.controlnet_image) {
+              // Disable Unit 0 if no image provided
+              units[0].enabled = false;
+              fs.appendFileSync(debugLogPath, `Disabled ControlNet Unit 0 (no image provided)\n`);
+            } else {
+              // Enable and configure Unit 0
+              units[0].enabled = true;
+              if (params.controlnet_model_1) units[0].model = params.controlnet_model_1;
+              if (params.controlnet_module_1) units[0].module = params.controlnet_module_1;
+              if (params.controlnet_weight_1 !== undefined) units[0].weight = params.controlnet_weight_1;
+            }
+          }
+
+          // Unit 1 overrides (enable only if image provided)
+          if (units[1]) {
+            if (params.controlnet_image_2) {
+              units[1].enabled = true;
+              if (params.controlnet_model_2) units[1].model = params.controlnet_model_2;
+              if (params.controlnet_module_2) units[1].module = params.controlnet_module_2;
+              if (params.controlnet_weight_2 !== undefined) units[1].weight = params.controlnet_weight_2;
+            } else {
+              units[1].enabled = false;
+              fs.appendFileSync(debugLogPath, `Disabled ControlNet Unit 1 (no image provided)\n`);
+            }
+          }
+
+          // Unit 2 overrides (enable only if image provided)
+          if (units[2]) {
+            if (params.controlnet_image_3) {
+              units[2].enabled = true;
+              if (params.controlnet_model_3) units[2].model = params.controlnet_model_3;
+              if (params.controlnet_module_3) units[2].module = params.controlnet_module_3;
+              if (params.controlnet_weight_3 !== undefined) units[2].weight = params.controlnet_weight_3;
+            } else {
+              units[2].enabled = false;
+              fs.appendFileSync(debugLogPath, `Disabled ControlNet Unit 2 (no image provided)\n`);
+            }
+          }
         }
 
         // ADetailer selective configuration
@@ -607,8 +724,6 @@ export class MCPServer {
               let imageData = imageParamValue;
               // Check if it's a file path (not base64 data)
               if (!imageParamValue.startsWith('data:') && !imageParamValue.match(/^[A-Za-z0-9+/]+=*$/)) {
-                const fs = require('fs');
-                const path = require('path');
                 try {
                   const resolvedPath = path.resolve(imageParamValue);
                   if (fs.existsSync(resolvedPath)) {
@@ -675,7 +790,6 @@ export class MCPServer {
       switch (preset.type) {
         case 'txt2img':
           // Comprehensive payload logging before API call
-          const fs = require('fs');
           const path = require('path');
           const payloadLogPath = path.join(process.cwd(), 'payload-debug.log');
           const timestamp = new Date().toISOString();
@@ -719,13 +833,14 @@ export class MCPServer {
           break;
 
         case 'img2img':
+          console.log(`[IMG2IMG] Processing with params keys: ${Object.keys(params).join(', ')}`);
           // Handle base64 image input
           if (params.init_image) {
             let initImageData = params.init_image;
             // Check if it's a file path (not base64 data)
-            if (!params.init_image.startsWith('data:') && !params.init_image.match(/^[A-Za-z0-9+/]+=*$/)) {
-              const fs = require('fs');
-              const path = require('path');
+            // Windows path check: contains backslash or starts with drive letter
+            const isFilePath = params.init_image.includes('\\') || params.init_image.includes('/') || /^[A-Z]:/i.test(params.init_image);
+            if (isFilePath) {
               try {
                 const resolvedPath = path.resolve(params.init_image);
                 if (fs.existsSync(resolvedPath)) {
@@ -738,6 +853,57 @@ export class MCPServer {
             }
             payload.init_images = [initImageData];
           }
+
+          // Handle mask image for inpainting (preset 27 inpaint mode)
+          if (params.mask_image) {
+            console.log(`Processing mask image: ${params.mask_image}`);
+            let maskImageData = params.mask_image;
+            // Check if it's a file path (not base64 data)
+            const isMaskFilePath = params.mask_image.includes('\\') || params.mask_image.includes('/') || /^[A-Z]:/i.test(params.mask_image);
+            if (isMaskFilePath) {
+              try {
+                const resolvedPath = path.resolve(params.mask_image);
+                if (fs.existsSync(resolvedPath)) {
+                  const buffer = fs.readFileSync(resolvedPath);
+                  maskImageData = buffer.toString('base64');
+                  console.log(`Loaded mask image from: ${resolvedPath}`);
+                }
+              } catch (e) {
+                console.error(`Error loading mask image: ${e}`);
+              }
+            }
+            payload.mask = maskImageData;
+
+            // Apply inpaint-specific parameters if provided
+            if (params.mask_blur !== undefined) payload.mask_blur = params.mask_blur;
+            if (params.inpainting_fill !== undefined) payload.inpainting_fill = params.inpainting_fill;
+            if (params.inpaint_full_res !== undefined) payload.inpaint_full_res = params.inpaint_full_res;
+            if (params.inpaint_full_res_padding !== undefined) payload.inpaint_full_res_padding = params.inpaint_full_res_padding;
+            if (params.inpainting_mask_invert !== undefined) payload.inpainting_mask_invert = params.inpainting_mask_invert;
+
+            console.log(`Inpaint mode enabled with mask_blur=${payload.mask_blur}, fill=${payload.inpainting_fill}, full_res=${payload.inpaint_full_res}`);
+            // Debug: Check mask data length
+            console.log(`Mask data length: ${payload.mask ? payload.mask.length : 0}`);
+            console.log(`Mask data prefix: ${payload.mask ? payload.mask.substring(0, 100) : 'none'}`);
+          }
+
+          // Clean up redundant fields that were copied from userParams
+          // The API expects init_images array and mask, not init_image and mask_image
+          delete payload.init_image;
+          delete payload.mask_image;
+
+          // Debug: Save payload to file
+          console.log('init_images[0] length:', payload.init_images?.[0]?.length);
+          console.log('mask length:', payload.mask?.length);
+          const debugPayload = JSON.stringify({
+            ...payload,
+            init_images: payload.init_images ? [`${payload.init_images[0]?.substring(0, 100)}...(${payload.init_images[0]?.length} chars)`] : undefined,
+            mask: payload.mask ? `${payload.mask.substring(0, 100)}...(${payload.mask.length} chars)` : undefined,
+            alwayson_scripts: payload.alwayson_scripts ? '...' : undefined
+          }, null, 2);
+          fs.writeFileSync('debug_img2img_payload.json', debugPayload);
+          console.log('Payload saved to debug_img2img_payload.json');
+
           response = await this.apiClient.img2img(payload);
           break;
 
@@ -747,8 +913,7 @@ export class MCPServer {
             // Read image file and convert to base64 if it's a file path
             let imageData = params.image;
             // Check if it's a file path (not base64 data)
-            const fs = require('fs');
-            const path = require('path');
+              const path = require('path');
             // If it looks like a path and not base64 data
             if (!params.image.startsWith('data:') && !params.image.match(/^[A-Za-z0-9+/]+=*$/)) {
               try {
@@ -778,8 +943,7 @@ export class MCPServer {
             let imageData = params.image;
             // Check if it's a file path (not base64 data)
             if (!params.image.startsWith('data:') && !params.image.match(/^[A-Za-z0-9+/]+=*$/)) {
-              const fs = require('fs');
-              const path = require('path');
+                  const path = require('path');
               try {
                 const resolvedPath = path.resolve(params.image);
                 if (fs.existsSync(resolvedPath)) {
@@ -902,8 +1066,7 @@ export class MCPServer {
             let imageData = params.image;
             // Check if it's a file path (not base64 data)
             if (!params.image.startsWith('data:') && !params.image.match(/^[A-Za-z0-9+/]+=*$/)) {
-              const fs = require('fs');
-              const path = require('path');
+                  const path = require('path');
               try {
                 const resolvedPath = path.resolve(params.image);
                 if (fs.existsSync(resolvedPath)) {
@@ -937,6 +1100,19 @@ export class MCPServer {
         const genResponse = response as any;
         if (genResponse.images && genResponse.images.length > 0) {
           const savedFiles = await this.saveImages(genResponse.images, presetName);
+
+          // Restore original upscaler setting if it was changed
+          if (originalUpscalerSetting !== null && params.upscaler_model && originalUpscalerSetting !== params.upscaler_model) {
+            try {
+              await this.apiClient.setOptions({
+                upscaler_for_img2img: originalUpscalerSetting
+              });
+              fs.appendFileSync(debugLogPath, `Restored upscaler to original: ${originalUpscalerSetting}\n`);
+            } catch (error) {
+              fs.appendFileSync(debugLogPath, `Error restoring upscaler setting: ${error}\n`);
+            }
+          }
+
           return {
             success: true,
             data: {
