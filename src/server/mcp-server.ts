@@ -294,43 +294,107 @@ export class MCPServer {
         // Handle base64 image input
         if (params.init_image) {
           let initImageData = params.init_image;
+          console.log(`[IMG2IMG] init_image input type check:`);
+          console.log(`  - Input length: ${params.init_image.length}`);
+          console.log(`  - First 100 chars: ${params.init_image.substring(0, 100)}`);
+
           // Check if it's a file path (not base64 data)
-          // Windows path check: contains backslash or starts with drive letter
-          const isFilePath = params.init_image.includes('\\') || params.init_image.includes('/') || /^[A-Z]:/i.test(params.init_image);
+          // More robust check: file path vs base64
+          const isBase64 = /^[A-Za-z0-9+/]+=*$/.test(params.init_image) || params.init_image.startsWith('data:image');
+          const isFilePath = !isBase64 && (
+            params.init_image.includes('\\') ||
+            params.init_image.includes('/') ||
+            /^[A-Z]:/i.test(params.init_image) ||
+            fs.existsSync(params.init_image)
+          );
+
+          console.log(`  - Is base64: ${isBase64}`);
+          console.log(`  - Is file path: ${isFilePath}`);
+
           if (isFilePath) {
             try {
               const resolvedPath = path.resolve(params.init_image);
+              console.log(`  - Resolved path: ${resolvedPath}`);
+
               if (fs.existsSync(resolvedPath)) {
+                const stats = fs.statSync(resolvedPath);
+                console.log(`  - File size: ${stats.size} bytes`);
+
                 const buffer = fs.readFileSync(resolvedPath);
                 initImageData = buffer.toString('base64');
-                console.log(`Loaded init_image from: ${resolvedPath}, base64 length: ${initImageData.length}`);
+
+                console.log(`  ✓ Successfully loaded init_image from file`);
+                console.log(`    - Base64 length: ${initImageData.length}`);
+                console.log(`    - Base64 preview: ${initImageData.substring(0, 50)}...`);
+                fs.appendFileSync(debugLogPath, `[IMG2IMG] init_image converted from file to base64 (${initImageData.length} chars)\n`);
+              } else {
+                console.error(`  ✗ File does not exist: ${resolvedPath}`);
+                fs.appendFileSync(debugLogPath, `[IMG2IMG] ERROR: init_image file not found: ${resolvedPath}\n`);
               }
             } catch (e) {
-              console.error(`Error loading init_image: ${e}`);
+              console.error(`  ✗ Error loading init_image: ${e}`);
+              fs.appendFileSync(debugLogPath, `[IMG2IMG] ERROR loading init_image: ${e}\n`);
             }
+          } else if (isBase64) {
+            console.log(`  - Using existing base64 data`);
+            fs.appendFileSync(debugLogPath, `[IMG2IMG] init_image already in base64 format\n`);
           }
+
           payload.init_images = [initImageData];
+          console.log(`[IMG2IMG] Final init_images[0] length: ${payload.init_images[0].length}`);
         }
 
         // Handle mask image for inpainting (preset 27 inpaint mode)
         if (params.mask_image) {
-          console.log(`Processing mask image: ${params.mask_image}`);
+          console.log(`[IMG2IMG] mask_image input type check:`);
+          console.log(`  - Input length: ${params.mask_image.length}`);
+          console.log(`  - First 100 chars: ${params.mask_image.substring(0, 100)}`);
+
           let maskImageData = params.mask_image;
+
           // Check if it's a file path (not base64 data)
-          const isMaskFilePath = params.mask_image.includes('\\') || params.mask_image.includes('/') || /^[A-Z]:/i.test(params.mask_image);
+          const isMaskBase64 = /^[A-Za-z0-9+/]+=*$/.test(params.mask_image) || params.mask_image.startsWith('data:image');
+          const isMaskFilePath = !isMaskBase64 && (
+            params.mask_image.includes('\\') ||
+            params.mask_image.includes('/') ||
+            /^[A-Z]:/i.test(params.mask_image) ||
+            fs.existsSync(params.mask_image)
+          );
+
+          console.log(`  - Is base64: ${isMaskBase64}`);
+          console.log(`  - Is file path: ${isMaskFilePath}`);
+
           if (isMaskFilePath) {
             try {
               const resolvedPath = path.resolve(params.mask_image);
+              console.log(`  - Resolved path: ${resolvedPath}`);
+
               if (fs.existsSync(resolvedPath)) {
+                const stats = fs.statSync(resolvedPath);
+                console.log(`  - File size: ${stats.size} bytes`);
+
                 const buffer = fs.readFileSync(resolvedPath);
                 maskImageData = buffer.toString('base64');
-                console.log(`Loaded mask image from: ${resolvedPath}, base64 length: ${maskImageData.length}`);
+
+                console.log(`  ✓ Successfully loaded mask_image from file`);
+                console.log(`    - Base64 length: ${maskImageData.length}`);
+                console.log(`    - Base64 preview: ${maskImageData.substring(0, 50)}...`);
+                fs.appendFileSync(debugLogPath, `[IMG2IMG] mask_image converted from file to base64 (${maskImageData.length} chars)\n`);
+              } else {
+                console.error(`  ✗ File does not exist: ${resolvedPath}`);
+                fs.appendFileSync(debugLogPath, `[IMG2IMG] ERROR: mask_image file not found: ${resolvedPath}\n`);
               }
             } catch (e) {
-              console.error(`Error loading mask image: ${e}`);
+              console.error(`  ✗ Error loading mask_image: ${e}`);
+              fs.appendFileSync(debugLogPath, `[IMG2IMG] ERROR loading mask_image: ${e}\n`);
             }
+          } else if (isMaskBase64) {
+            console.log(`  - Using existing base64 data`);
+            fs.appendFileSync(debugLogPath, `[IMG2IMG] mask_image already in base64 format\n`);
           }
+
           payload.mask = maskImageData;
+          console.log(`[IMG2IMG] Final mask length: ${payload.mask.length}`);
 
           // Apply inpaint-specific parameters if provided
           if (params.mask_blur !== undefined) payload.mask_blur = params.mask_blur;
@@ -339,10 +403,14 @@ export class MCPServer {
           if (params.inpaint_full_res_padding !== undefined) payload.inpaint_full_res_padding = params.inpaint_full_res_padding;
           if (params.inpainting_mask_invert !== undefined) payload.inpainting_mask_invert = params.inpainting_mask_invert;
 
-          console.log(`Inpaint mode enabled with mask_blur=${payload.mask_blur}, fill=${payload.inpainting_fill}, full_res=${payload.inpaint_full_res}`);
-          // Debug: Check mask data length
-          console.log(`Mask data length: ${payload.mask ? payload.mask.length : 0}`);
-          console.log(`Mask data prefix: ${payload.mask ? payload.mask.substring(0, 100) : 'none'}`);
+          console.log(`[IMG2IMG] Inpaint mode enabled with parameters:`);
+          console.log(`  - mask_blur: ${payload.mask_blur}`);
+          console.log(`  - inpainting_fill: ${payload.inpainting_fill}`);
+          console.log(`  - inpaint_full_res: ${payload.inpaint_full_res}`);
+          console.log(`  - inpaint_full_res_padding: ${payload.inpaint_full_res_padding}`);
+          console.log(`  - inpainting_mask_invert: ${payload.inpainting_mask_invert}`);
+
+          fs.appendFileSync(debugLogPath, `[IMG2IMG] Inpaint parameters set\n`);
         }
 
         // Clean up redundant fields that were copied from userParams
@@ -350,9 +418,15 @@ export class MCPServer {
         delete payload.init_image;
         delete payload.mask_image;
 
-        // Debug: Save payload to file
-        console.log('init_images[0] length:', payload.init_images?.[0]?.length);
-        console.log('mask length:', payload.mask?.length);
+        // Final validation and debug summary
+        console.log('\n[IMG2IMG] === Final Payload Validation ===');
+        console.log(`  - init_images array present: ${!!payload.init_images}`);
+        console.log(`  - init_images[0] length: ${payload.init_images?.[0]?.length || 0}`);
+        console.log(`  - mask present: ${!!payload.mask}`);
+        console.log(`  - mask length: ${payload.mask?.length || 0}`);
+        console.log(`  - Payload ready for API: ${payload.init_images && payload.init_images[0] ? '✓' : '✗'}`);
+
+        fs.appendFileSync(debugLogPath, `[IMG2IMG] Final payload state: init_images=${!!payload.init_images}, mask=${!!payload.mask}\n`);
       }
 
       // Special handling for img2img upscaler
@@ -833,76 +907,15 @@ export class MCPServer {
           break;
 
         case 'img2img':
-          console.log(`[IMG2IMG] Processing with params keys: ${Object.keys(params).join(', ')}`);
-          // Handle base64 image input
-          if (params.init_image) {
-            let initImageData = params.init_image;
-            // Check if it's a file path (not base64 data)
-            // Windows path check: contains backslash or starts with drive letter
-            const isFilePath = params.init_image.includes('\\') || params.init_image.includes('/') || /^[A-Z]:/i.test(params.init_image);
-            if (isFilePath) {
-              try {
-                const resolvedPath = path.resolve(params.init_image);
-                if (fs.existsSync(resolvedPath)) {
-                  const buffer = fs.readFileSync(resolvedPath);
-                  initImageData = buffer.toString('base64');
-                }
-              } catch (e) {
-                // If it fails, assume it's already base64 data
-              }
-            }
-            payload.init_images = [initImageData];
-          }
+          // img2img processing is already handled before the switch statement (lines 290-356)
+          // The payload should already have init_images and mask properly set from the pre-processing
 
-          // Handle mask image for inpainting (preset 27 inpaint mode)
-          if (params.mask_image) {
-            console.log(`Processing mask image: ${params.mask_image}`);
-            let maskImageData = params.mask_image;
-            // Check if it's a file path (not base64 data)
-            const isMaskFilePath = params.mask_image.includes('\\') || params.mask_image.includes('/') || /^[A-Z]:/i.test(params.mask_image);
-            if (isMaskFilePath) {
-              try {
-                const resolvedPath = path.resolve(params.mask_image);
-                if (fs.existsSync(resolvedPath)) {
-                  const buffer = fs.readFileSync(resolvedPath);
-                  maskImageData = buffer.toString('base64');
-                  console.log(`Loaded mask image from: ${resolvedPath}`);
-                }
-              } catch (e) {
-                console.error(`Error loading mask image: ${e}`);
-              }
-            }
-            payload.mask = maskImageData;
-
-            // Apply inpaint-specific parameters if provided
-            if (params.mask_blur !== undefined) payload.mask_blur = params.mask_blur;
-            if (params.inpainting_fill !== undefined) payload.inpainting_fill = params.inpainting_fill;
-            if (params.inpaint_full_res !== undefined) payload.inpaint_full_res = params.inpaint_full_res;
-            if (params.inpaint_full_res_padding !== undefined) payload.inpaint_full_res_padding = params.inpaint_full_res_padding;
-            if (params.inpainting_mask_invert !== undefined) payload.inpainting_mask_invert = params.inpainting_mask_invert;
-
-            console.log(`Inpaint mode enabled with mask_blur=${payload.mask_blur}, fill=${payload.inpainting_fill}, full_res=${payload.inpaint_full_res}`);
-            // Debug: Check mask data length
-            console.log(`Mask data length: ${payload.mask ? payload.mask.length : 0}`);
-            console.log(`Mask data prefix: ${payload.mask ? payload.mask.substring(0, 100) : 'none'}`);
-          }
-
-          // Clean up redundant fields that were copied from userParams
-          // The API expects init_images array and mask, not init_image and mask_image
-          delete payload.init_image;
-          delete payload.mask_image;
-
-          // Debug: Save payload to file
-          console.log('init_images[0] length:', payload.init_images?.[0]?.length);
-          console.log('mask length:', payload.mask?.length);
-          const debugPayload = JSON.stringify({
-            ...payload,
-            init_images: payload.init_images ? [`${payload.init_images[0]?.substring(0, 100)}...(${payload.init_images[0]?.length} chars)`] : undefined,
-            mask: payload.mask ? `${payload.mask.substring(0, 100)}...(${payload.mask.length} chars)` : undefined,
-            alwayson_scripts: payload.alwayson_scripts ? '...' : undefined
-          }, null, 2);
-          fs.writeFileSync('debug_img2img_payload.json', debugPayload);
-          console.log('Payload saved to debug_img2img_payload.json');
+          // Debug: Log the final payload state
+          console.log('[IMG2IMG] Final payload state:');
+          console.log('- init_images present:', !!payload.init_images);
+          console.log('- init_images[0] length:', payload.init_images?.[0]?.length);
+          console.log('- mask present:', !!payload.mask);
+          console.log('- mask length:', payload.mask?.length);
 
           response = await this.apiClient.img2img(payload);
           break;
