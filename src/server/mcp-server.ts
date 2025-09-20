@@ -1234,7 +1234,7 @@ export class MCPServer {
           break;
 
         case 'tagger':
-          // Tagger (interrogate)
+          // Tagger (advanced models)
           if (params.image) {
             // Read image file and convert to base64 if it's a file path
             let imageData = params.image;
@@ -1252,7 +1252,7 @@ export class MCPServer {
               }
             }
             payload.image = imageData;
-            response = await this.apiClient.interrogate(payload);
+            response = await this.apiClient.tagger(payload);
           } else {
             return {
               success: false,

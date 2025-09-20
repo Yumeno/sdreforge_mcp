@@ -139,6 +139,22 @@ export interface InterrogateResponse {
   caption: string;
 }
 
+// Tagger API types
+export interface TaggerPayload {
+  image: string;
+  model: string;
+  threshold?: number;
+  exclude_tags?: string;
+  replace_underscore?: boolean;
+  replace_underscore_excludes?: string;
+  escape_tag?: boolean;
+  unload_model_after_running?: boolean;
+}
+
+export interface TaggerResponse {
+  caption: string;
+}
+
 // Utility type for cleaning payloads
 export type CleanPayload<T> = {
   [K in keyof T]: T[K] extends null ? never :

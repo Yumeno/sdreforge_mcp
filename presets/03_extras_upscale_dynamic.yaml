@@ -5,7 +5,7 @@ description: "Upscale image with dynamic model selection"
 
 settings:
   # Dynamic model selection - user can override
-  upscaler_1: "4x_ultrasharp"  # Options: 4x_ultrasharp, 4x_fatal_anime_500000_G, R-ESRGAN 4x+, R-ESRGAN 4x+ Anime6B, etc.
+  upscaler_1: "4x-UltraSharp"  # Options: 4x-UltraSharp, 4x_fatal_Anime_500000_G, R-ESRGAN 4x+, R-ESRGAN 4x+ Anime6B, etc.
   upscaling_resize: 4           # Scale factor (1-8)
 
   # Optional enhancement parameters
@@ -21,8 +21,8 @@ settings:
   upscale_first: false          # Upscale before face restoration
 
 # Available upscaler models (for reference):
-# - 4x_ultrasharp (General purpose, sharp)
-# - 4x_fatal_anime_500000_G (Anime optimized)
+# - 4x-UltraSharp (General purpose, sharp)
+# - 4x_fatal_Anime_500000_G (Anime optimized)
 # - R-ESRGAN 4x+ (General purpose)
 # - R-ESRGAN 4x+ Anime6B (Anime optimized)
 # - LDSR (Latent Diffusion Super Resolution)
