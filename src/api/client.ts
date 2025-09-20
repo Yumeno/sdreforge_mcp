@@ -201,6 +201,32 @@ export class SDWebUIClient {
   }
 
   /**
+   * Remove background using RemBG extension
+   */
+  async rembg(payload: {
+    input_image: string;
+    model?: string;
+    return_mask?: boolean;
+    alpha_matting?: boolean;
+    alpha_matting_foreground_threshold?: number;
+    alpha_matting_background_threshold?: number;
+    alpha_matting_erode_size?: number;
+  }): Promise<{ image: string }> {
+    // Use dedicated /rembg endpoint from RemBG extension
+    try {
+      const response = await axios.post(`${this.baseUrl}/rembg`, payload, {
+        timeout: this.timeout,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      this.handleError(error as AxiosError);
+    }
+  }
+
+  /**
    * Get available samplers
    */
   async getSamplers(): Promise<any[]> {

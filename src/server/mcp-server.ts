@@ -971,47 +971,54 @@ export class MCPServer {
 
             // Check if RemBG processing is configured
             if (preset.settings?.rembg_model) {
-              // RemBG is a postprocessing script, needs to be in alwayson_scripts
-              // Build the payload with all required settings
-              const rembgSettings: any = {
-                ...payload,
-                ...preset.settings
+              // Read original PNG Info before processing
+              let originalPngInfo = null;
+              try {
+                originalPngInfo = await this.apiClient.pngInfo(imageData);
+                console.log('[RemBG] Original PNG Info retrieved');
+              } catch (error) {
+                console.log('[RemBG] Could not read original PNG Info:', error);
+              }
+
+              // Use dedicated /rembg endpoint instead of extras
+              const rembgPayload = {
+                input_image: imageData,
+                model: preset.settings.rembg_model || "u2net",
+                return_mask: preset.settings.return_mask || false,
+                alpha_matting: preset.settings.alpha_matting || false,
+                alpha_matting_foreground_threshold: preset.settings.alpha_matting_foreground_threshold || 240,
+                alpha_matting_background_threshold: preset.settings.alpha_matting_background_threshold || 10,
+                alpha_matting_erode_size: preset.settings.alpha_matting_erode_size || 10
               };
 
-              // Remove the rembg-specific settings from main payload
-              delete rembgSettings.rembg_model;
-              delete rembgSettings.return_mask;
-              delete rembgSettings.alpha_matting;
-              delete rembgSettings.alpha_matting_foreground_threshold;
-              delete rembgSettings.alpha_matting_background_threshold;
-              delete rembgSettings.alpha_matting_erode_size;
+              console.log('[RemBG] Using dedicated /rembg endpoint with model:', preset.settings.rembg_model);
+              const rembgResponse = await this.apiClient.rembg(rembgPayload);
 
-              // Apply the cleaned settings back to payload
-              Object.keys(rembgSettings).forEach(key => {
-                if (key !== 'image') {
-                  payload[key] = rembgSettings[key];
-                }
-              });
+              // Reconstruct PNG Info to preserve original and add RemBG info
+              if (originalPngInfo && rembgResponse.image) {
+                const rembgModel = preset.settings.rembg_model;
+                const postprocessingInfo = `Rembg: ${rembgModel}`;
 
-              // Add RemBG-specific parameters as postprocessor args
-              payload.postprocessor_order = ["Rembg"];
-              payload.extras = {
-                "Rembg": {
-                  "model": preset.settings.rembg_model || "u2net",
-                  "return_mask": preset.settings.return_mask || false,
-                  "alpha_matting": preset.settings.alpha_matting || false,
-                  "alpha_matting_foreground_threshold": preset.settings.alpha_matting_foreground_threshold || 240,
-                  "alpha_matting_background_threshold": preset.settings.alpha_matting_background_threshold || 50,
-                  "alpha_matting_erode_size": preset.settings.alpha_matting_erode_size || 10
-                }
-              };
+                // Parse original info to extract parameters
+                let baseInfo = originalPngInfo.info || '';
 
-              // Debug log
-              console.log('[RemBG] Configured with model:', preset.settings.rembg_model);
-              console.log('[RemBG] Payload extras:', JSON.stringify(payload.extras, null, 2));
+                // Add postprocessing field to the original info
+                const extrasInfo = `postprocessing: ${postprocessingInfo}, extras: ${postprocessingInfo}`;
+                const combinedInfo = baseInfo ? `${baseInfo}\n${extrasInfo}` : extrasInfo;
+
+                // Create extras-like response with original PNG Info + RemBG info
+                response = {
+                  image: rembgResponse.image,
+                  html_info: combinedInfo
+                };
+
+                console.log('[RemBG] Original PNG Info preserved with RemBG postprocessing added');
+              } else {
+                response = rembgResponse;
+              }
+            } else {
+              response = await this.apiClient.extrasSingleImage(payload);
             }
-
-            response = await this.apiClient.extrasSingleImage(payload);
           } else {
             return {
               success: false,
@@ -1298,7 +1305,16 @@ export class MCPServer {
         // Extras response with processed image
         const extrasResponse = response as any;
         if (extrasResponse.image) {
-          const savedFiles = await this.saveImages([extrasResponse.image], presetName);
+          let savedFiles: string[];
+
+          // Special handling for RemBG to preserve PNG Info
+          if (preset.settings?.rembg_model && extrasResponse.html_info) {
+            savedFiles = await this.saveImagesWithPngInfo([extrasResponse.image], presetName, extrasResponse.html_info);
+          } else {
+            // Use standard save for other extras processing
+            savedFiles = await this.saveImages([extrasResponse.image], presetName);
+          }
+
           return {
             success: true,
             data: {
@@ -1357,6 +1373,112 @@ export class MCPServer {
     }
 
     return savedFiles;
+  }
+
+  /**
+   * Save images with PNG Info embedded (for RemBG only)
+   */
+  private async saveImagesWithPngInfo(images: string[], presetName: string, htmlInfo: string): Promise<string[]> {
+    const outputDir = path.join(process.cwd(), 'output');
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    const savedFiles: string[] = [];
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+
+    for (let i = 0; i < images.length; i++) {
+      const filename = `${presetName}-${timestamp}${i > 0 ? `-${i}` : ''}.png`;
+      const filepath = path.join(outputDir, filename);
+
+      // Decode base64 image
+      const buffer = Buffer.from(images[i], 'base64');
+
+      try {
+        // Use png-chunk libraries to embed PNG Info
+        const extract = require('png-chunks-extract');
+        const encode = require('png-chunks-encode');
+        const text = require('png-chunk-text');
+
+        // Extract chunks from the image buffer
+        const chunks = extract(buffer);
+
+        // Extract original parameters from htmlInfo (before postprocessing line)
+        const lines = htmlInfo.split('\n');
+        const postprocessingLineIndex = lines.findIndex(line => line.startsWith('postprocessing:'));
+
+        let originalParameters = htmlInfo;
+        let postprocessingInfo = '';
+        let extrasInfo = '';
+
+        if (postprocessingLineIndex >= 0) {
+          // Separate original parameters from postprocessing info
+          originalParameters = lines.slice(0, postprocessingLineIndex).join('\n');
+          const postprocessingLine = lines[postprocessingLineIndex];
+
+          // Extract Rembg info from postprocessing line
+          const rembgMatch = postprocessingLine.match(/Rembg: ([^,]+)/);
+          if (rembgMatch) {
+            const rembgModel = rembgMatch[1].trim();
+            postprocessingInfo = `Rembg: ${rembgModel}`;
+            extrasInfo = `Rembg: ${rembgModel}`;
+          }
+        }
+
+        // Create 3 separate tEXt chunks in SD WebUI standard format
+        const parametersChunk = text.encode('parameters', originalParameters);
+        const postprocessingChunk = text.encode('postprocessing', postprocessingInfo);
+        const extrasChunk = text.encode('extras', extrasInfo);
+
+        // Insert the text chunks before the IEND chunk (last chunk)
+        chunks.splice(-1, 0, parametersChunk, postprocessingChunk, extrasChunk);
+
+        // Encode chunks back to PNG buffer
+        const newBuffer = Buffer.from(encode(chunks));
+
+        // Save the modified PNG
+        fs.writeFileSync(filepath, newBuffer);
+        console.log(`[RemBG] Saved image with PNG Info: ${filepath}`);
+      } catch (error) {
+        // Fallback to simple save if PNG processing fails
+        console.log(`[RemBG] Failed to embed PNG Info, using simple save: ${error}`);
+        fs.writeFileSync(filepath, buffer);
+      }
+
+      savedFiles.push(filepath);
+
+      if (this.config.debug) {
+        console.log(`Saved image with RemBG PNG Info: ${filepath}`);
+      }
+    }
+
+    return savedFiles;
+  }
+
+  /**
+   * Extract postprocessing info from html_info
+   */
+  private extractPostprocessing(htmlInfo: string): string {
+    const lines = htmlInfo.split('\n');
+    for (const line of lines) {
+      if (line.startsWith('postprocessing:')) {
+        return line.replace('postprocessing:', '').trim();
+      }
+    }
+    return '';
+  }
+
+  /**
+   * Extract extras info from html_info
+   */
+  private extractExtras(htmlInfo: string): string {
+    const lines = htmlInfo.split('\n');
+    for (const line of lines) {
+      if (line.startsWith('extras:')) {
+        return line.replace('extras:', '').trim();
+      }
+    }
+    return '';
   }
 
   /**
