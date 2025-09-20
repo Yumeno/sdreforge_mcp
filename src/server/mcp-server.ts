@@ -1333,8 +1333,8 @@ export class MCPServer {
         if (extrasResponse.image) {
           let savedFiles: string[];
 
-          // Special handling for RemBG to preserve PNG Info
-          if (preset.settings?.rembg_model && extrasResponse.html_info) {
+          // Special handling for RemBG and Upscale to preserve PNG Info
+          if (extrasResponse.html_info && (preset.settings?.rembg_model || preset.settings?.upscaler_1)) {
             savedFiles = await this.saveImagesWithPngInfo([extrasResponse.image], presetName, extrasResponse.html_info);
           } else {
             // Use standard save for other extras processing
@@ -1402,7 +1402,7 @@ export class MCPServer {
   }
 
   /**
-   * Save images with PNG Info embedded (for RemBG only)
+   * Save images with PNG Info embedded (for Extras: RemBG, Upscale, etc.)
    */
   private async saveImagesWithPngInfo(images: string[], presetName: string, htmlInfo: string): Promise<string[]> {
     const outputDir = path.join(process.cwd(), 'output');
@@ -1442,12 +1442,23 @@ export class MCPServer {
           originalParameters = lines.slice(0, postprocessingLineIndex).join('\n');
           const postprocessingLine = lines[postprocessingLineIndex];
 
-          // Extract Rembg info from postprocessing line
+          // Extract postprocessing info (RemBG, Upscale, etc.)
           const rembgMatch = postprocessingLine.match(/Rembg: ([^,]+)/);
+          const upscaleMatch = postprocessingLine.match(/Postprocess upscale by: ([^,]+), Postprocess upscaler: ([^,]+)/);
+
           if (rembgMatch) {
             const rembgModel = rembgMatch[1].trim();
             postprocessingInfo = `Rembg: ${rembgModel}`;
             extrasInfo = `Rembg: ${rembgModel}`;
+          } else if (upscaleMatch) {
+            const upscaleFactor = upscaleMatch[1].trim();
+            const upscaleModel = upscaleMatch[2].trim();
+            postprocessingInfo = `Postprocess upscale by: ${upscaleFactor}, Postprocess upscaler: ${upscaleModel}`;
+            extrasInfo = `Postprocess upscale by: ${upscaleFactor}, Postprocess upscaler: ${upscaleModel}`;
+          } else {
+            // Fallback for other postprocessing
+            postprocessingInfo = postprocessingLine.replace('postprocessing:', '').trim();
+            extrasInfo = postprocessingInfo;
           }
         }
 
@@ -1464,17 +1475,17 @@ export class MCPServer {
 
         // Save the modified PNG
         fs.writeFileSync(filepath, newBuffer);
-        console.log(`[RemBG] Saved image with PNG Info: ${filepath}`);
+        console.log(`[Extras] Saved image with PNG Info: ${filepath}`);
       } catch (error) {
         // Fallback to simple save if PNG processing fails
-        console.log(`[RemBG] Failed to embed PNG Info, using simple save: ${error}`);
+        console.log(`[Extras] Failed to embed PNG Info, using simple save: ${error}`);
         fs.writeFileSync(filepath, buffer);
       }
 
       savedFiles.push(filepath);
 
       if (this.config.debug) {
-        console.log(`Saved image with RemBG PNG Info: ${filepath}`);
+        console.log(`Saved image with Extras PNG Info: ${filepath}`);
       }
     }
 
