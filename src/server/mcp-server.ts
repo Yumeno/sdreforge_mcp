@@ -1301,6 +1301,32 @@ export class MCPServer {
             }
           };
         }
+      } else if (preset.type === 'tagger') {
+        // Tagger response - convert to comma-separated tags
+        const taggerResponse = response as any;
+        if (taggerResponse.caption && taggerResponse.caption.tag) {
+          const threshold = preset.settings?.threshold || 0.35;
+          const tags = Object.entries(taggerResponse.caption.tag)
+            .filter(([tag, confidence]: [string, any]) => confidence >= threshold)
+            .sort(([, a]: [string, any], [, b]: [string, any]) => b - a) // Sort by confidence descending
+            .map(([tag]: [string, any]) => tag);
+
+          const promptTags = tags.join(', ');
+
+          return {
+            success: true,
+            data: {
+              caption: promptTags,
+              raw_data: taggerResponse
+            },
+            metadata: {
+              preset: presetName,
+              type: preset.type,
+              threshold: threshold,
+              tag_count: tags.length
+            }
+          };
+        }
       } else if (preset.type === 'extras') {
         // Extras response with processed image
         const extrasResponse = response as any;
