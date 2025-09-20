@@ -1,0 +1,26 @@
+# Dynamic Background Removal - Model Selection Available
+name: extras_rembg_dynamic
+type: extras
+description: "Remove background with dynamic model selection"
+
+settings:
+  # Dynamic model selection - user can override
+  rembg_model: "u2net"          # Options: u2net, u2netp, u2net_human_seg, isnet-anime, silueta, etc.
+
+  # Output options
+  return_mask: false            # Return mask instead of RGBA
+
+  # Alpha matting for edge refinement
+  alpha_matting: true                           # Enable alpha matting
+  alpha_matting_foreground_threshold: 240       # Foreground threshold (0-255)
+  alpha_matting_background_threshold: 50        # Background threshold (0-255)
+  alpha_matting_erode_size: 10                 # Erosion size
+
+# Available rembg models (for reference):
+# - u2net (General purpose, balanced)
+# - u2netp (Lightweight version)
+# - u2net_human_seg (Human optimized)
+# - u2net_cloth_seg (Clothing optimized)
+# - isnet-anime (Anime character optimized)
+# - silueta (Silhouette extraction)
+# - isnet-general-use (General purpose)

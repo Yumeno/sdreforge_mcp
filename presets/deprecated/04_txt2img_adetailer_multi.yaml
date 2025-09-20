@@ -1,7 +1,7 @@
-# (23) txt2img with face and hand detection
-name: txt2img_animagine_face_hand
+# (04) txt2img with multiple detection models
+name: txt2img_adetailer_multi
 type: txt2img
-description: "txt2img with animagineXL40_v4Opt + ADetailer (face & hand)"
+description: "txt2img with animagineXL40_v4Opt + ADetailer (face, hand, person, eyes)"
 
 base_settings:
   checkpoint: "sd_animagineXL40_v4Opt"
@@ -30,4 +30,8 @@ extensions:
       - model: "face_yolov8n.pt"
         confidence: 0.3
       - model: "hand_yolov8n.pt"
+        confidence: 0.3
+      - model: "person_yolov8n-seg.pt"
+        confidence: 0.3
+      - model: "eyes_yolov8n.pt"  # 目の詳細検出（存在する場合）
         confidence: 0.3

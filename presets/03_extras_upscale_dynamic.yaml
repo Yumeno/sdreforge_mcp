@@ -1,0 +1,33 @@
+# Dynamic Upscale - Model Selection Available
+name: extras_upscale_dynamic
+type: extras
+description: "Upscale image with dynamic model selection"
+
+settings:
+  # Dynamic model selection - user can override
+  upscaler_1: "4x_ultrasharp"  # Options: 4x_ultrasharp, 4x_fatal_anime_500000_G, R-ESRGAN 4x+, R-ESRGAN 4x+ Anime6B, etc.
+  upscaling_resize: 4           # Scale factor (1-8)
+
+  # Optional enhancement parameters
+  upscaler_2: "None"            # Second upscaler for mixing
+  extras_upscaler_2_visibility: 0  # Mix ratio (0-1)
+
+  # Face restoration (optional)
+  gfpgan_visibility: 0          # GFPGAN strength (0-1)
+  codeformer_visibility: 0      # CodeFormer strength (0-1)
+  codeformer_weight: 0          # CodeFormer fidelity (0-1)
+
+  # Processing order
+  upscale_first: false          # Upscale before face restoration
+
+# Available upscaler models (for reference):
+# - 4x_ultrasharp (General purpose, sharp)
+# - 4x_fatal_anime_500000_G (Anime optimized)
+# - R-ESRGAN 4x+ (General purpose)
+# - R-ESRGAN 4x+ Anime6B (Anime optimized)
+# - LDSR (Latent Diffusion Super Resolution)
+# - SwinIR 4x (Transformer based)
+# - ScuNET (Noise reduction)
+# - ScuNET PSNR (Optimized for PSNR)
+# - Lanczos (Fast, basic)
+# - Nearest (Fastest, pixelated)

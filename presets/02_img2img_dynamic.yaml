@@ -1,5 +1,5 @@
 # ================================================================================================
-# (26) Ultimate Dynamic Preset - Complete Parameterization for All SD WebUI Reforge Features
+# (02) Ultimate Dynamic Preset IMG2IMG - Complete Parameterization for All SD WebUI Reforge Features
 # ================================================================================================
 #
 # This preset represents a revolutionary approach to AI image generation configuration.
@@ -10,15 +10,24 @@
 # USAGE EXAMPLES:
 # ================================================================================================
 #
-# Basic Generation (no extra features):
+# Basic IMG2IMG Generation:
+#   init_image="input.png"
 #   prompt="anime girl portrait"
+#   denoising_strength=0.5
 #   seed=12345
 #
-# High-Resolution Generation:
-#   prompt="anime girl portrait"
-#   enable_hr=true
-#   hr_scale=2.0
-#   hr_upscaler="4x_fatal_Anime_500000_G"
+# Strong Transformation:
+#   init_image="photo.png"
+#   prompt="anime style artwork"
+#   denoising_strength=0.75
+#
+# Inpaint Mode (Masked Editing):
+#   init_image="original.png"
+#   mask_image="mask.png"  # White=edit, Black=preserve
+#   prompt="blue sky with clouds"
+#   mask_blur=8
+#   inpainting_fill=1  # Use original
+#   inpaint_full_res=true
 #
 # ControlNet Single Unit:
 #   prompt="colorful anime girl"
@@ -76,10 +85,10 @@
 #   rp_prompt_1="beautiful detailed face"
 #   rp_prompt_2="golden armor"
 #
-# Complete Feature Combination:
+# Complete Feature Combination IMG2IMG:
+#   init_image="base.png"
 #   prompt="masterpiece {cute|cool} anime girl ADDBASE red hair ADDCOL blue hair"
-#   enable_hr=true
-#   hr_scale=1.5
+#   denoising_strength=0.6
 #   controlnet_image="pose.png"
 #   controlnet_model_1="CN-anytest3_animagine4_A"
 #   adetailer_model_2="hand_yolov8n.pt"
@@ -91,11 +100,29 @@
 #
 # ================================================================================================
 
-name: txt2img_cn_multi_3units
-type: txt2img
-description: "Ultimate dynamic preset - ControlNet (0-3 units) + ADetailer (1-4 models) + Hires Fix + Full parameterization"
+name: img2img_dynamic
+type: img2img
+description: "Ultimate dynamic IMG2IMG preset - ControlNet (0-3 units) + ADetailer (1-4 models) + Full parameterization"
 
 base_settings:
+  # IMG2IMG specific parameters
+  init_images: []  # Will be provided at runtime
+  denoising_strength: 0.5  # Default strength, can be overridden
+  resize_mode: 0  # 0=Just resize, 1=Crop and resize, 2=Resize and fill
+
+  # Inpaint Mode parameters (optional - only used when mask_image is provided)
+  # mask: ""  # Mask image will be set at runtime when mask_image param is provided
+  # mask_blur: 4  # Override with mask_blur param
+  # inpainting_fill: 1  # 0=fill, 1=original, 2=latent noise, 3=latent nothing
+  # inpaint_full_res: true  # Process only masked area (true) or whole image (false)
+  # inpaint_full_res_padding: 0  # Padding pixels around mask
+  # inpainting_mask_invert: 0  # 0=normal, 1=invert
+
+  # IMG2IMG Upscale options (alternative to Hires Fix)
+  # Use larger width/height values to upscale
+  # Example: 1024x1024 input → 2048x2048 output for 2x upscale
+
+  # Common parameters
   checkpoint: "sd_animagineXL40_v4Opt"
   sampler_name: "Euler a"
   scheduler: "Automatic"
@@ -106,16 +133,7 @@ base_settings:
   seed: -1
   batch_size: 1
   n_iter: 1
-  enable_hr: false
-  denoising_strength: 0.4
   clip_skip: 1
-
-  # Hires Fix default settings (user can override)
-  hr_scale: 2.0
-  hr_upscaler: "R-ESRGAN 4x+ Anime6B"
-  hr_second_pass_steps: 0
-  hr_resize_x: 0
-  hr_resize_y: 0
 
 prompt_template:
   positive_prefix: ""

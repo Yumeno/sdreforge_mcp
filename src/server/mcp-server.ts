@@ -968,6 +968,49 @@ export class MCPServer {
               }
             }
             payload.image = imageData;
+
+            // Check if RemBG processing is configured
+            if (preset.settings?.rembg_model) {
+              // RemBG is a postprocessing script, needs to be in alwayson_scripts
+              // Build the payload with all required settings
+              const rembgSettings: any = {
+                ...payload,
+                ...preset.settings
+              };
+
+              // Remove the rembg-specific settings from main payload
+              delete rembgSettings.rembg_model;
+              delete rembgSettings.return_mask;
+              delete rembgSettings.alpha_matting;
+              delete rembgSettings.alpha_matting_foreground_threshold;
+              delete rembgSettings.alpha_matting_background_threshold;
+              delete rembgSettings.alpha_matting_erode_size;
+
+              // Apply the cleaned settings back to payload
+              Object.keys(rembgSettings).forEach(key => {
+                if (key !== 'image') {
+                  payload[key] = rembgSettings[key];
+                }
+              });
+
+              // Add RemBG-specific parameters as postprocessor args
+              payload.postprocessor_order = ["Rembg"];
+              payload.extras = {
+                "Rembg": {
+                  "model": preset.settings.rembg_model || "u2net",
+                  "return_mask": preset.settings.return_mask || false,
+                  "alpha_matting": preset.settings.alpha_matting || false,
+                  "alpha_matting_foreground_threshold": preset.settings.alpha_matting_foreground_threshold || 240,
+                  "alpha_matting_background_threshold": preset.settings.alpha_matting_background_threshold || 50,
+                  "alpha_matting_erode_size": preset.settings.alpha_matting_erode_size || 10
+                }
+              };
+
+              // Debug log
+              console.log('[RemBG] Configured with model:', preset.settings.rembg_model);
+              console.log('[RemBG] Payload extras:', JSON.stringify(payload.extras, null, 2));
+            }
+
             response = await this.apiClient.extrasSingleImage(payload);
           } else {
             return {
@@ -1064,6 +1107,117 @@ export class MCPServer {
                 error: `Failed to get ControlNet models: ${error.message}`
               };
             }
+          } else if (preset.settings?.action === 'upscalers') {
+            try {
+              const upscalers = await this.apiClient.getUpscalers();
+              return {
+                success: true,
+                data: {
+                  upscalers: upscalers,
+                  total: upscalers.length,
+                  message: `Found ${upscalers.length} upscaler models`
+                }
+              };
+            } catch (error: any) {
+              return {
+                success: false,
+                error: `Failed to get upscaler models: ${error.message}`
+              };
+            }
+          } else if (preset.settings?.action === 'samplers') {
+            try {
+              const samplers = await this.apiClient.getSamplers();
+              return {
+                success: true,
+                data: {
+                  samplers: samplers,
+                  total: samplers.length,
+                  message: `Found ${samplers.length} samplers`
+                }
+              };
+            } catch (error: any) {
+              return {
+                success: false,
+                error: `Failed to get samplers: ${error.message}`
+              };
+            }
+          } else if (preset.settings?.action === 'controlnet_modules') {
+            try {
+              const apiUrl = (this.apiClient as any).baseUrl || 'http://192.168.91.2:7863';
+              const response = await fetch(`${apiUrl}/controlnet/module_list`);
+              const data: any = await response.json();
+              const modules = data.module_list || [];
+              return {
+                success: true,
+                data: {
+                  modules: modules,
+                  total: modules.length,
+                  message: `Found ${modules.length} ControlNet modules`
+                }
+              };
+            } catch (error: any) {
+              return {
+                success: false,
+                error: `Failed to get ControlNet modules: ${error.message}`
+              };
+            }
+          } else if (preset.settings?.action === 'adetailer_models') {
+            try {
+              const apiUrl = (this.apiClient as any).baseUrl || 'http://192.168.91.2:7863';
+              const response = await fetch(`${apiUrl}/adetailer/v1/ad_model`);
+              const models: any = await response.json();
+              return {
+                success: true,
+                data: {
+                  models: models.ad_model,
+                  total: models.ad_model.length,
+                  message: `Found ${models.ad_model.length} ADetailer models`
+                }
+              };
+            } catch (error: any) {
+              return {
+                success: false,
+                error: `Failed to get ADetailer models: ${error.message}`
+              };
+            }
+          } else if (preset.settings?.action === 'tagger_models') {
+            try {
+              const apiUrl = (this.apiClient as any).baseUrl || 'http://192.168.91.2:7863';
+              const response = await fetch(`${apiUrl}/tagger/v1/interrogators`);
+              const models: any = await response.json();
+              return {
+                success: true,
+                data: {
+                  models: models.models,
+                  total: models.models.length,
+                  message: `Found ${models.models.length} Tagger models`
+                }
+              };
+            } catch (error: any) {
+              return {
+                success: false,
+                error: `Failed to get Tagger models: ${error.message}`
+              };
+            }
+          } else if (preset.settings?.action === 'rembg_models') {
+            // RemBG models are hardcoded in the extension (from postprocessing_rembg.py)
+            const models = [
+              "isnet-general-use",
+              "isnet-anime",
+              "u2net",
+              "u2netp",
+              "u2net_human_seg",
+              "u2net_cloth_seg",
+              "silueta"
+            ];
+            return {
+              success: true,
+              data: {
+                models: models,
+                total: models.length,
+                message: `Found ${models.length} RemBG models (hardcoded from extension)`
+              }
+            };
           } else {
             return {
               success: false,

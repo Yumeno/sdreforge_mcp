@@ -1,4 +1,4 @@
-# (21) utility check_model
+# (07) utility check_model
 name: utility_check_model
 type: utility
 description: "Check current model checkpoint"
