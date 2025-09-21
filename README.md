@@ -13,30 +13,35 @@ MCP (Model Context Protocol) server for SD WebUI Reforge integration with Claude
   - 自動null値クリーニング（422エラー防止）
   - 包括的なエラーハンドリング
   - 全主要エンドポイント対応
-- **プリセットマネージャー** - YAMLベースの設定管理
-  - 全拡張機能対応（ADetailer, ControlNet等）
-  - txt2img/img2img/ユーティリティプリセット
-  - ユーザーパラメータマージ機能
-- **テスト** - TDD開発
+- **動的プリセットシステム** - 効率化された設定管理
+  - **2つの動的プリセット**で全機能をカバー：`txt2img_dynamic`, `img2img_dynamic`
+  - 動的パラメータ生成：max_models, max_units メタデータベース
+  - 自動有効化ロジック：ControlNet, ADetailer の後方互換性
+  - **16個のユーティリティツール**：PNG情報、アップスケール、背景除去等
+- **全拡張機能対応** - 10種類以上の拡張機能統合
+  - **ControlNet**: 最大10ユニット、auto-enable機能
+  - **ADetailer**: 最大15モデル、顔・手・人物検出
+  - **Regional Prompter**: Matrix/Maskモード、無制限マスク
+  - **Dynamic Prompts**: 自動拡張、Magic Prompt
+- **テスト・検証済み** - TDD開発
   - 単体テスト: 27個
   - 統合テスト: 実サーバー接続確認済み
-- **MCPサーバー** - MCP仕様準拠のサーバー実装
-  - 動的ツール生成
+  - **実績**: 152モデル、74サンプラーで動作確認
+- **MCPサーバー** - MCP仕様準拠の完全実装
+  - 動的ツール生成（プリセット→MCPツール自動変換）
   - リクエスト/レスポンスハンドリング
   - 自動画像保存機能
-  - **img2img/inpaint** - ファイルパス→base64自動変換対応（v0.1.1）
-- **28種類のプリセット** - 様々なユースケースに対応
-  - 基本プリセット（22種）
-  - 動的プリセット26: txt2img_cn_multi_3units（全機能統合）
-  - 動的プリセット27: img2img_cn_multi_3units（inpaint対応）
+  - **img2img/inpaint** - ファイルパス→base64自動変換対応
 
 ## 📋 特徴
 
-- 🎨 **フル機能対応** - SD WebUI Reforgeの全機能をサポート
-- 🔧 **拡張機能サポート** - 10種類以上の拡張機能に対応
-- 📝 **YAMLベースの設定** - 簡単にカスタマイズ可能
-- 🚀 **動的ツール生成** - プリセットに基づいてMCPツールを自動生成
-- ✅ **実サーバー検証済み** - 152モデル、74サンプラーで動作確認
+- 🎨 **完全統合システム** - 2つの動的プリセットで全機能を効率的にカバー
+- 🔧 **拡張機能フルサポート** - ControlNet, ADetailer, Regional Prompter等10種類以上
+- ⚡ **動的パラメータ生成** - max_models/max_units メタデータによる自動拡張
+- 🔄 **自動有効化** - 画像提供時のControlNet/ADetailer自動有効化
+- 📝 **YAMLベース設定** - 直感的なプリセット定義とカスタマイズ
+- 🚀 **リアルタイム生成** - プリセット→MCPツール動的変換
+- ✅ **本格運用対応** - 152モデル、74サンプラーで動作検証済み
 
 ## 🛠️ インストール
 
@@ -132,6 +137,81 @@ Mac/Linux: `~/.config/Claude/claude_desktop_config.json`
    ```
 4. `sdreforge_`で始まるツールが表示されれば成功です
 
+## 🔧 利用可能なツール一覧
+
+### 画像生成ツール (2個)
+- `sdreforge_txt2img_dynamic` - 究極の動的テキスト→画像生成
+- `sdreforge_img2img_dynamic` - 究極の動的画像→画像生成・編集
+
+### ユーティリティツール (16個)
+- `sdreforge_extras_upscale_dynamic` - 画像アップスケール
+- `sdreforge_extras_rembg_dynamic` - 背景除去
+- `sdreforge_extras_combined_rembg_upscale` - 背景除去+アップスケール統合
+- `sdreforge_tagger_dynamic` - 画像タグ自動生成
+- `sdreforge_utility_png_info` - PNG メタデータ抽出
+- `sdreforge_utility_check_model` - 現在のモデル確認
+- `sdreforge_utility_switch_model` - モデル切り替え
+- `sdreforge_utility_controlnet_models` - ControlNet モデル一覧
+- `sdreforge_utility_samplers` - サンプラー一覧
+- `sdreforge_utility_upscalers` - アップスケーラー一覧
+- `sdreforge_utility_controlnet_modules` - ControlNet モジュール一覧
+- `sdreforge_utility_adetailer_models` - ADetailer モデル一覧
+- `sdreforge_utility_tagger_models` - Tagger モデル一覧
+- `sdreforge_utility_rembg_models` - RemBG モデル一覧
+
+## 🎯 クイックスタート
+
+### 基本的な画像生成
+
+```bash
+# Claude Code で以下を実行
+sdreforge_txt2img_dynamic(
+  prompt="beautiful anime girl, masterpiece",
+  steps=28,
+  cfg_scale=7,
+  width=1024,
+  height=1024
+)
+```
+
+### ControlNet を使った構図制御
+
+```bash
+# ポーズ画像を使った生成
+sdreforge_txt2img_dynamic(
+  prompt="anime girl dancing",
+  controlnet_image="pose_reference.png",
+  controlnet_model_1="CN-anytest3_animagine4_A",
+  controlnet_weight_1=0.8
+)
+```
+
+### 高解像度生成
+
+```bash
+# Hires Fix を使った高品質生成
+sdreforge_txt2img_dynamic(
+  prompt="detailed anime portrait",
+  enable_hr=true,
+  hr_scale=2.0,
+  hr_upscaler="R-ESRGAN 4x+ Anime6B"
+)
+```
+
+### 複数拡張機能の組み合わせ
+
+```bash
+# ControlNet + ADetailer + Dynamic Prompts
+sdreforge_txt2img_dynamic(
+  prompt="{cute|beautiful} anime girl with {red|blue} hair",
+  controlnet_image="pose.png",
+  controlnet_model_1="CN-anytest3_animagine4_A",
+  adetailer_model_2="hand_yolov8n.pt",
+  enable_dynamic_prompts=true,
+  batch_size=4
+)
+```
+
 ### トラブルシューティング
 
 **ツールが表示されない場合：**
@@ -173,30 +253,46 @@ python launch.py --api --listen
 python launch.py --api --listen --xformers --medvram
 ```
 
-## 📚 プリセットYAMLリファレンス
+## 📚 ドキュメント
 
-### 基本構造
+### 包括的なガイド
+
+- **[YAML プリセットリファレンス](docs/PRESET_YAML_REFERENCE.md)** - 完全なプリセット仕様（350+項目）
+- **[ツール登録・リビルドガイド](docs/TOOL_REGISTRATION_GUIDE.md)** - MCPツール生成とリビルド手順
+- **[開発者ガイド](docs/DEVELOPER_GUIDE.md)** - 新機能開発とカスタマイズ
+- **[プリセットテンプレートガイド](docs/PRESET_TEMPLATES_GUIDE.md)** - 拡張機能別設定例
+
+### 動的プリセットシステム
+
+**2つの万能プリセット**で全機能をカバー：
+
+#### txt2img_dynamic - 究極のテキスト→画像生成
 
 ```yaml
-name: preset_name           # プリセット名（必須）
-description: 説明            # 説明（オプション）
-type: txt2img               # タイプ（必須）
-
-base_settings:              # 基本設定
-  # 記載した項目のみAPIペイロードに含まれます
-  # 省略した項目はデフォルト値または未設定となります
-
-extensions:                 # 拡張機能設定
-  # 有効にしたい拡張機能のみ記載
-  # 記載しない拡張機能は無効（JSONに含まれない）
+# メタデータで動的パラメータ生成
+extensions:
+  adetailer:
+    max_models: 15           # adetailer_model_1-15 を自動生成
+  controlnet:
+    max_units: 10            # controlnet_* パラメータを10セット生成
+  regional_prompter:
+    rp_active: false         # 必要時に有効化
+  dynamic_prompts:
+    enable_dynamic_prompts: true
 ```
 
-### YAMLの省略ルール
+**生成される動的パラメータ例**:
+- ControlNet: `controlnet_image_1-10`, `controlnet_enable_1-10`, `controlnet_model_1-10` 等
+- ADetailer: `adetailer_model_1-15`
+- Hires Fix: `enable_hr`, `hr_scale`, `hr_upscaler` 等
+- 全350+項目がユーザーパラメータで動的制御可能
+
+#### プリセット省略ルール
 
 **重要**: YAMLに記載しない項目は、APIペイロードのJSONに含まれません。
 
 ```yaml
-# 例1: ADetailerを使わない場合
+# 必要最小限の定義
 extensions:
   # adetailerを記載しない = ADetailerは無効
 
@@ -204,6 +300,35 @@ extensions:
 base_settings:
   steps: 20        # これは含まれる
   # widthを記載しない = デフォルト値が使用される
+```
+
+### 自動有効化システム
+
+#### ControlNet 自動有効化
+```bash
+# 画像を提供すると自動的にControlNetが有効化
+sdreforge_txt2img_dynamic(
+  prompt="anime girl",
+  controlnet_image="pose.png"  # これだけで自動有効化
+)
+
+# 明示的制御も可能
+sdreforge_txt2img_dynamic(
+  prompt="anime girl",
+  controlnet_image="pose.png",
+  controlnet_enable_1=true,    # 明示的有効化
+  controlnet_model_1="CN-anytest3_animagine4_A"
+)
+```
+
+#### ADetailer 自動有効化
+```bash
+# Model 1は常に face_yolov8n.pt で有効
+# Model 2以降は指定時のみ有効化
+sdreforge_txt2img_dynamic(
+  prompt="anime girl",
+  adetailer_model_2="hand_yolov8n.pt"  # Model 2を自動有効化
+)
 ```
 
 ### txt2img完全リファレンス
@@ -353,9 +478,50 @@ settings:
   model: "clip"  # または "deepbooru"
 ```
 
-## 🎯 使用例
+## 🎯 実用例
 
-### プログラム内での使用
+### Regional Prompter - 領域別制御
+
+```bash
+# Matrix モード: 左右で異なるキャラクター
+sdreforge_txt2img_dynamic(
+  prompt="2girls ADDBASE red hair, blue eyes ADDCOL green hair, red eyes",
+  rp_active=true,
+  rp_mode="Matrix",
+  rp_matrix_submode="Columns",
+  rp_divide_ratio="1,1"
+)
+
+# Mask モード: マスク画像で領域指定
+sdreforge_txt2img_dynamic(
+  prompt="fantasy warrior",
+  rp_active=true,
+  rp_mode="Mask",
+  rp_mask_1="face_area.png",
+  rp_mask_2="body_area.png"
+)
+```
+
+### Dynamic Prompts - 自動バリエーション
+
+```bash
+# ワイルドカード展開
+sdreforge_txt2img_dynamic(
+  prompt="{cute|beautiful|elegant} anime girl with {red|blue|black} hair",
+  enable_dynamic_prompts=true,
+  batch_size=4,  # 4枚の異なるバリエーション
+  combinatorial_generation=false
+)
+
+# Magic Prompt でプロンプト強化
+sdreforge_txt2img_dynamic(
+  prompt="anime girl",
+  enable_dynamic_prompts=true,
+  magic_prompt=true  # AIが自動的にプロンプトを詳細化
+)
+```
+
+### プログラマティック利用
 
 ```typescript
 import { PresetManager } from './src/presets';
@@ -365,13 +531,18 @@ import { SDWebUIClient } from './src/api/client';
 const manager = new PresetManager('./presets');
 const client = new SDWebUIClient();
 
-// プリセット読み込み
-const preset = manager.loadPreset('01_txt2img_animagine_base.yaml');
+// 動的プリセット使用
+const preset = manager.loadPreset('01_txt2img_dynamic.yaml');
 
-// ユーザー入力とマージ
+// 複数拡張機能の組み合わせ
 const payload = manager.presetToPayload(preset, {
-  prompt: "1girl, smile",
-  seed: 12345
+  prompt: "masterpiece anime girl",
+  controlnet_image: "pose_reference.png",
+  controlnet_model_1: "CN-anytest3_animagine4_A",
+  adetailer_model_2: "hand_yolov8n.pt",
+  enable_hr: true,
+  hr_scale: 2.0,
+  batch_size: 2
 });
 
 // 画像生成
@@ -446,19 +617,27 @@ cat .env.local
 - プリセットのextensions内でenabledがtrueになっているか確認
 - モデル名が正確か確認
 
-## 📊 テスト実績
+## 📊 検証実績
 
-- **接続テスト**: ✅ 152モデル、74サンプラーで動作確認
-- **画像生成**: ✅ 512x512〜1024x1024で複数回生成成功
-- **拡張機能**: ✅ ADetailer、ControlNet動作確認
-- **プリセット**: ✅ 全テンプレート解析成功
+- **接続テスト**: ✅ 152モデル、74サンプラーで動作確認済み
+- **動的プリセット**: ✅ 2つのプリセットで全26種類の機能を統合
+- **拡張機能**: ✅ ControlNet, ADetailer, Regional Prompter 実動作確認
+- **自動有効化**: ✅ 後方互換性を保ちつつ直感的操作を実現
+- **ユーティリティ**: ✅ 16種類のツールで包括的な画像処理サポート
+- **TDD開発**: ✅ 27個の単体テスト + 統合テスト完備
 
-## 🚀 今後の開発予定
+## 📈 システム進化
 
-- [ ] Phase 1: MCPサーバー基礎実装
-- [ ] Phase 2: 20種類のデフォルトプリセット作成
-- [ ] Phase 3: Claude Code統合
-- [ ] Future: img2img sketch, inpaint modes, X/Y/Z plots
+### v0.1.0 → 現在
+- ✅ **26個の個別プリセット** → **2個の動的プリセット**に効率化
+- ✅ **静的パラメータ** → **動的パラメータ生成**システム
+- ✅ **手動設定** → **自動有効化ロジック**
+- ✅ **基本機能** → **全拡張機能統合**
+
+### 今後の展開
+- [ ] **Phase 4**: X/Y/Z プロット機能
+- [ ] **Phase 5**: カスタム拡張機能プラグインシステム
+- [ ] **Future**: Batch処理とワークフロー自動化
 
 ## 📝 ライセンス
 
