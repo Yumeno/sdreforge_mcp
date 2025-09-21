@@ -100,7 +100,7 @@ export class PresetManager {
       return false;
     }
 
-    const validTypes = ['txt2img', 'img2img', 'extras', 'png-info', 'tagger', 'rembg', 'utility'];
+    const validTypes = ['txt2img', 'img2img', 'extras', 'extras_combined', 'png-info', 'tagger', 'rembg', 'utility'];
     if (!preset.type || !validTypes.includes(preset.type)) {
       return false;
     }
@@ -112,7 +112,7 @@ export class PresetManager {
       }
     }
     // Utility and processing presets require settings
-    else if (['extras', 'png-info', 'tagger', 'rembg', 'utility'].includes(preset.type)) {
+    else if (['extras', 'extras_combined', 'png-info', 'tagger', 'rembg', 'utility'].includes(preset.type)) {
       if (!preset.settings || typeof preset.settings !== 'object') {
         return false;
       }
@@ -152,6 +152,13 @@ export class PresetManager {
 
     // Apply prompt template with complete config aggregation
     if (preset.prompt_template && userParams.prompt) {
+      // Override template with user-provided values if specified
+      const effectiveTemplate = {
+        positive_prefix: userParams.prompt_prefix ?? preset.prompt_template.positive_prefix,
+        positive_suffix: userParams.prompt_suffix ?? preset.prompt_template.positive_suffix,
+        negative: userParams.negative_prompt_base ?? preset.prompt_template.negative
+      };
+
       // Aggregate complete Regional Prompter configuration (defaults + user overrides)
       const finalRpConfig = {
         rp_active: userParams.rp_active ?? preset.extensions?.regional_prompter?.rp_active ?? false,
@@ -165,13 +172,28 @@ export class PresetManager {
       // Check if Regional Prompter syntax is present AND user enabled it
       const hasRpSyntax = PromptHandler.hasRegionalPrompterSyntax(userParams.prompt);
 
+      // Build combined negative prompt from base and user input
+      let combinedNegativePrompt = '';
+
+      // Use the effective template negative (which may be overridden by user)
+      const baseNegative = effectiveTemplate.negative || '';
+      const userNegative = userParams.negative_prompt_user || '';
+
+      if (baseNegative && userNegative) {
+        combinedNegativePrompt = `${baseNegative}, ${userNegative}`;
+      } else if (baseNegative) {
+        combinedNegativePrompt = baseNegative;
+      } else if (userNegative) {
+        combinedNegativePrompt = userNegative;
+      }
+
       if (hasRpSyntax && finalRpConfig.rp_active) {
         // Use Regional Prompter aware prompt processing with aggregated config
         const promptResult = PromptHandler.mergePromptsWithRegionalPrompter(
           userParams.prompt,
-          preset.prompt_template,
+          effectiveTemplate,  // Use the effective template with overrides
           finalRpConfig,  // Pass the entire config directly - already has rp_ prefix
-          userParams.negative_prompt
+          combinedNegativePrompt  // Use combined negative prompt
         );
         basePayload.prompt = promptResult.prompt;
         if (promptResult.negative_prompt) {
@@ -181,10 +203,13 @@ export class PresetManager {
         // Standard prompt processing
         const promptResult = PromptHandler.mergePrompts(
           userParams.prompt,
-          preset.prompt_template
+          effectiveTemplate  // Use the effective template with overrides
         );
         basePayload.prompt = promptResult.prompt;
-        if (promptResult.negative_prompt) {
+        // Override with combined negative prompt if user provided negative_prompt_user
+        if (combinedNegativePrompt) {
+          basePayload.negative_prompt = combinedNegativePrompt;
+        } else if (promptResult.negative_prompt) {
           basePayload.negative_prompt = promptResult.negative_prompt;
         }
       }

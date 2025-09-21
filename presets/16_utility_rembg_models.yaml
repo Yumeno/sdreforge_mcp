@@ -1,0 +1,9 @@
+# (15) utility rembg models list
+name: utility_rembg_models
+type: utility
+description: "Get list of available RemBG models"
+
+settings:
+  action: "rembg_models"
+  endpoint: "/rembg/models"
+  method: "GET"

@@ -38,6 +38,9 @@
     "dotenv": "^17.2.2",
     "jimp": "^1.6.0",
     "js-yaml": "^4.1.0",
+    "png-chunks-extract": "^1.0.0",
+    "png-chunks-encode": "^1.0.0",
+    "png-chunk-text": "^1.0.0",
     "pngjs": "^7.0.0"
   },
   "devDependencies": {

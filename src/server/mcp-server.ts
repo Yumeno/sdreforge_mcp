@@ -455,10 +455,12 @@ export class MCPServer {
       // Special handling for fully parameterized ControlNet preset (26)
       fs.appendFileSync(debugLogPath, `Checking preset 26 conditions: presetName=${presetName}, has_alwayson=${!!payload.alwayson_scripts}, has_controlnet=${!!(payload.alwayson_scripts?.ControlNet)}, has_args=${!!(payload.alwayson_scripts?.ControlNet?.args)}\n`);
 
-      if ((presetName === 'txt2img_cn_multi_3units' || presetName === 'img2img_cn_multi_3units') && payload.alwayson_scripts?.ControlNet?.args) {
+      if ((presetName === 'txt2img_dynamic' || presetName === 'img2img_dynamic') && payload.alwayson_scripts?.ControlNet?.args) {
         // Apply user parameter overrides to default ControlNet units
-        // Check if any ControlNet images are provided
-        const hasAnyControlNetImage = params.controlnet_image || params.controlnet_image_2 || params.controlnet_image_3;
+        // Check if any ControlNet images are provided (up to 10 units)
+        const hasAnyControlNetImage = params.controlnet_image || params.controlnet_image_2 || params.controlnet_image_3 ||
+          params.controlnet_image_4 || params.controlnet_image_5 || params.controlnet_image_6 ||
+          params.controlnet_image_7 || params.controlnet_image_8 || params.controlnet_image_9 || params.controlnet_image_10;
 
         // Disable ControlNet entirely if no images provided
         if (!hasAnyControlNetImage) {
@@ -468,49 +470,62 @@ export class MCPServer {
           // Only process units if ControlNet is enabled
           const units = payload.alwayson_scripts.ControlNet.args;
 
-          // Unit 0 overrides (disable if no image AND model is not "None")
-          if (units[0]) {
-            if (!params.controlnet_image) {
-              // Disable Unit 0 if no image provided
-              units[0].enabled = false;
-              fs.appendFileSync(debugLogPath, `Disabled ControlNet Unit 0 (no image provided)\n`);
-            } else {
-              // Enable and configure Unit 0
-              units[0].enabled = true;
-              if (params.controlnet_model_1) units[0].model = params.controlnet_model_1;
-              if (params.controlnet_module_1) units[0].module = params.controlnet_module_1;
-              if (params.controlnet_weight_1 !== undefined) units[0].weight = params.controlnet_weight_1;
-            }
+          // Dynamic ControlNet unit configuration based on preset max_units
+          const maxUnits = Math.min(units.length, 10); // Cap at 10 for safety
+          const controlnetConfig: any[] = [];
+
+          // Generate config dynamically based on actual units and max_units
+          for (let i = 1; i <= maxUnits; i++) {
+            const config = {
+              enableParam: `controlnet_enable_${i}`,
+              imageParam: i === 1 ? 'controlnet_image' : `controlnet_image_${i}`,
+              modelParam: `controlnet_model_${i}`,
+              moduleParam: `controlnet_module_${i}`,
+              weightParam: `controlnet_weight_${i}`
+            };
+            controlnetConfig.push(config);
           }
 
-          // Unit 1 overrides (enable only if image provided)
-          if (units[1]) {
-            if (params.controlnet_image_2) {
-              units[1].enabled = true;
-              if (params.controlnet_model_2) units[1].model = params.controlnet_model_2;
-              if (params.controlnet_module_2) units[1].module = params.controlnet_module_2;
-              if (params.controlnet_weight_2 !== undefined) units[1].weight = params.controlnet_weight_2;
-            } else {
-              units[1].enabled = false;
-              fs.appendFileSync(debugLogPath, `Disabled ControlNet Unit 1 (no image provided)\n`);
-            }
-          }
+          controlnetConfig.forEach((config, index) => {
+            if (units[index]) {
+              // Backward compatibility: Auto-enable if image provided but enable flag not explicitly set
+              const enableFlagSet = params[config.enableParam] !== undefined;
+              const hasImage = !!params[config.imageParam];
 
-          // Unit 2 overrides (enable only if image provided)
-          if (units[2]) {
-            if (params.controlnet_image_3) {
-              units[2].enabled = true;
-              if (params.controlnet_model_3) units[2].model = params.controlnet_model_3;
-              if (params.controlnet_module_3) units[2].module = params.controlnet_module_3;
-              if (params.controlnet_weight_3 !== undefined) units[2].weight = params.controlnet_weight_3;
-            } else {
-              units[2].enabled = false;
-              fs.appendFileSync(debugLogPath, `Disabled ControlNet Unit 2 (no image provided)\n`);
+              let isEnabled = false;
+              let reason = '';
+
+              if (enableFlagSet) {
+                // User explicitly set enable flag - respect their choice
+                isEnabled = params[config.enableParam] === true && hasImage;
+                reason = isEnabled ?
+                  `${config.enableParam}=true, image provided` :
+                  `${config.enableParam}=${params[config.enableParam]}, image=${hasImage}`;
+              } else if (hasImage) {
+                // Backward compatibility: Auto-enable when image provided (no explicit flag)
+                isEnabled = true;
+                reason = `auto-enabled (image provided, no explicit flag)`;
+              } else {
+                // No image provided and no explicit flag
+                isEnabled = false;
+                reason = `no image provided, no enable flag`;
+              }
+
+              if (isEnabled) {
+                units[index].enabled = true;
+                if (params[config.modelParam]) units[index].model = params[config.modelParam];
+                if (params[config.moduleParam]) units[index].module = params[config.moduleParam];
+                if (params[config.weightParam] !== undefined) units[index].weight = params[config.weightParam];
+                fs.appendFileSync(debugLogPath, `Enabled ControlNet Unit ${index} (${reason})\n`);
+              } else {
+                units[index].enabled = false;
+                fs.appendFileSync(debugLogPath, `Disabled ControlNet Unit ${index} (${reason})\n`);
+              }
             }
-          }
+          });
         }
 
-        // ADetailer selective configuration
+        // ADetailer selective configuration (up to 15 models)
         if (payload.alwayson_scripts?.ADetailer?.args) {
           const adetailerArgs = payload.alwayson_scripts.ADetailer.args;
 
@@ -520,25 +535,20 @@ export class MCPServer {
             false   // skip_img2img flag
           ];
 
-          // Add Model 1 (always enabled - face detection by default)
+          // Add Model 1 (face detection enabled by default - opt-in design)
           newADetailerArgs.push({ ad_model: 'face_yolov8n.pt' });
 
-          // Add Model 2 only if specified
-          if (params.adetailer_model_2) {
-            newADetailerArgs.push({ ad_model: params.adetailer_model_2 });
-            fs.appendFileSync(debugLogPath, `Enabled ADetailer Model 2: ${params.adetailer_model_2}\n`);
-          }
-
-          // Add Model 3 only if specified
-          if (params.adetailer_model_3) {
-            newADetailerArgs.push({ ad_model: params.adetailer_model_3 });
-            fs.appendFileSync(debugLogPath, `Enabled ADetailer Model 3: ${params.adetailer_model_3}\n`);
-          }
-
-          // Add Model 4 only if specified
-          if (params.adetailer_model_4) {
-            newADetailerArgs.push({ ad_model: params.adetailer_model_4 });
-            fs.appendFileSync(debugLogPath, `Enabled ADetailer Model 4: ${params.adetailer_model_4}\n`);
+          // Dynamic model configuration (Models 2-15) - opt-in only
+          for (let i = 2; i <= 15; i++) {
+            const modelParam = `adetailer_model_${i}`;
+            const modelValue = params[modelParam];
+            // Only enable if parameter is specified AND not "None" (case-insensitive)
+            if (modelValue && modelValue.toLowerCase() !== 'none') {
+              newADetailerArgs.push({ ad_model: modelValue });
+              fs.appendFileSync(debugLogPath, `Enabled ADetailer Model ${i}: ${modelValue}\n`);
+            } else if (modelValue && modelValue.toLowerCase() === 'none') {
+              fs.appendFileSync(debugLogPath, `Skipped ADetailer Model ${i}: explicitly disabled with "None"\n`);
+            }
           }
 
           // Replace the args array
@@ -634,14 +644,19 @@ export class MCPServer {
             fs.appendFileSync(debugLogPath, `Validation: baseRatioValue was empty, set to: "${baseRatioValue}"\n`);
           }
 
-          // Handle mask combination for Mask mode
+          // Handle mask combination for Mask mode (unlimited masks)
           let polymaskData: string | null = null;
           if (params.rp_mode === 'Mask') {
-            // Combine user-provided masks into a single colored mask
+            // Dynamically collect all mask parameters (rp_mask_1, rp_mask_2, ...)
             const maskPaths: string[] = [];
-            if (params.rp_mask_1) maskPaths.push(params.rp_mask_1);
-            if (params.rp_mask_2) maskPaths.push(params.rp_mask_2);
-            if (params.rp_mask_3) maskPaths.push(params.rp_mask_3);
+
+            // Search for all rp_mask_* parameters
+            Object.keys(params).forEach(key => {
+              if (key.startsWith('rp_mask_') && params[key]) {
+                maskPaths.push(params[key]);
+                fs.appendFileSync(debugLogPath, `Found mask parameter: ${key} = ${params[key]}\n`);
+              }
+            });
 
             if (maskPaths.length > 0) {
               fs.appendFileSync(debugLogPath, `Combining ${maskPaths.length} masks for Regional Prompter\n`);
@@ -784,11 +799,18 @@ export class MCPServer {
       // Handle multiple ControlNet image parameters (controlnet_image, controlnet_image_2, controlnet_image_3)
       if (payload.alwayson_scripts?.ControlNet) {
         try {
-          // Process multiple ControlNet images
+          // Process multiple ControlNet images (up to 10 units)
           const imageParams = [
             { key: 'controlnet_image', unitIndex: 0 },
             { key: 'controlnet_image_2', unitIndex: 1 },
-            { key: 'controlnet_image_3', unitIndex: 2 }
+            { key: 'controlnet_image_3', unitIndex: 2 },
+            { key: 'controlnet_image_4', unitIndex: 3 },
+            { key: 'controlnet_image_5', unitIndex: 4 },
+            { key: 'controlnet_image_6', unitIndex: 5 },
+            { key: 'controlnet_image_7', unitIndex: 6 },
+            { key: 'controlnet_image_8', unitIndex: 7 },
+            { key: 'controlnet_image_9', unitIndex: 8 },
+            { key: 'controlnet_image_10', unitIndex: 9 }
           ];
 
           for (const imageParam of imageParams) {
@@ -968,7 +990,57 @@ export class MCPServer {
               }
             }
             payload.image = imageData;
-            response = await this.apiClient.extrasSingleImage(payload);
+
+            // Check if RemBG processing is configured
+            if (preset.settings?.rembg_model) {
+              // Read original PNG Info before processing
+              let originalPngInfo = null;
+              try {
+                originalPngInfo = await this.apiClient.pngInfo(imageData);
+                console.log('[RemBG] Original PNG Info retrieved');
+              } catch (error) {
+                console.log('[RemBG] Could not read original PNG Info:', error);
+              }
+
+              // Use dedicated /rembg endpoint instead of extras
+              const rembgPayload = {
+                input_image: imageData,
+                model: preset.settings.rembg_model || "u2net",
+                return_mask: preset.settings.return_mask || false,
+                alpha_matting: preset.settings.alpha_matting || false,
+                alpha_matting_foreground_threshold: preset.settings.alpha_matting_foreground_threshold || 240,
+                alpha_matting_background_threshold: preset.settings.alpha_matting_background_threshold || 10,
+                alpha_matting_erode_size: preset.settings.alpha_matting_erode_size || 10
+              };
+
+              console.log('[RemBG] Using dedicated /rembg endpoint with model:', preset.settings.rembg_model);
+              const rembgResponse = await this.apiClient.rembg(rembgPayload);
+
+              // Reconstruct PNG Info to preserve original and add RemBG info
+              if (originalPngInfo && rembgResponse.image) {
+                const rembgModel = preset.settings.rembg_model;
+                const postprocessingInfo = `Rembg: ${rembgModel}`;
+
+                // Parse original info to extract parameters
+                let baseInfo = originalPngInfo.info || '';
+
+                // Add postprocessing field to the original info
+                const extrasInfo = `postprocessing: ${postprocessingInfo}, extras: ${postprocessingInfo}`;
+                const combinedInfo = baseInfo ? `${baseInfo}\n${extrasInfo}` : extrasInfo;
+
+                // Create extras-like response with original PNG Info + RemBG info
+                response = {
+                  image: rembgResponse.image,
+                  html_info: combinedInfo
+                };
+
+                console.log('[RemBG] Original PNG Info preserved with RemBG postprocessing added');
+              } else {
+                response = rembgResponse;
+              }
+            } else {
+              response = await this.apiClient.extrasSingleImage(payload);
+            }
           } else {
             return {
               success: false,
@@ -1064,6 +1136,117 @@ export class MCPServer {
                 error: `Failed to get ControlNet models: ${error.message}`
               };
             }
+          } else if (preset.settings?.action === 'upscalers') {
+            try {
+              const upscalers = await this.apiClient.getUpscalers();
+              return {
+                success: true,
+                data: {
+                  upscalers: upscalers,
+                  total: upscalers.length,
+                  message: `Found ${upscalers.length} upscaler models`
+                }
+              };
+            } catch (error: any) {
+              return {
+                success: false,
+                error: `Failed to get upscaler models: ${error.message}`
+              };
+            }
+          } else if (preset.settings?.action === 'samplers') {
+            try {
+              const samplers = await this.apiClient.getSamplers();
+              return {
+                success: true,
+                data: {
+                  samplers: samplers,
+                  total: samplers.length,
+                  message: `Found ${samplers.length} samplers`
+                }
+              };
+            } catch (error: any) {
+              return {
+                success: false,
+                error: `Failed to get samplers: ${error.message}`
+              };
+            }
+          } else if (preset.settings?.action === 'controlnet_modules') {
+            try {
+              const apiUrl = (this.apiClient as any).baseUrl || 'http://192.168.91.2:7863';
+              const response = await fetch(`${apiUrl}/controlnet/module_list`);
+              const data: any = await response.json();
+              const modules = data.module_list || [];
+              return {
+                success: true,
+                data: {
+                  modules: modules,
+                  total: modules.length,
+                  message: `Found ${modules.length} ControlNet modules`
+                }
+              };
+            } catch (error: any) {
+              return {
+                success: false,
+                error: `Failed to get ControlNet modules: ${error.message}`
+              };
+            }
+          } else if (preset.settings?.action === 'adetailer_models') {
+            try {
+              const apiUrl = (this.apiClient as any).baseUrl || 'http://192.168.91.2:7863';
+              const response = await fetch(`${apiUrl}/adetailer/v1/ad_model`);
+              const models: any = await response.json();
+              return {
+                success: true,
+                data: {
+                  models: models.ad_model,
+                  total: models.ad_model.length,
+                  message: `Found ${models.ad_model.length} ADetailer models`
+                }
+              };
+            } catch (error: any) {
+              return {
+                success: false,
+                error: `Failed to get ADetailer models: ${error.message}`
+              };
+            }
+          } else if (preset.settings?.action === 'tagger_models') {
+            try {
+              const apiUrl = (this.apiClient as any).baseUrl || 'http://192.168.91.2:7863';
+              const response = await fetch(`${apiUrl}/tagger/v1/interrogators`);
+              const models: any = await response.json();
+              return {
+                success: true,
+                data: {
+                  models: models.models,
+                  total: models.models.length,
+                  message: `Found ${models.models.length} Tagger models`
+                }
+              };
+            } catch (error: any) {
+              return {
+                success: false,
+                error: `Failed to get Tagger models: ${error.message}`
+              };
+            }
+          } else if (preset.settings?.action === 'rembg_models') {
+            // RemBG models are hardcoded in the extension (from postprocessing_rembg.py)
+            const models = [
+              "isnet-general-use",
+              "isnet-anime",
+              "u2net",
+              "u2netp",
+              "u2net_human_seg",
+              "u2net_cloth_seg",
+              "silueta"
+            ];
+            return {
+              success: true,
+              data: {
+                models: models,
+                total: models.length,
+                message: `Found ${models.length} RemBG models (hardcoded from extension)`
+              }
+            };
           } else {
             return {
               success: false,
@@ -1073,7 +1256,7 @@ export class MCPServer {
           break;
 
         case 'tagger':
-          // Tagger (interrogate)
+          // Tagger (advanced models)
           if (params.image) {
             // Read image file and convert to base64 if it's a file path
             let imageData = params.image;
@@ -1091,13 +1274,117 @@ export class MCPServer {
               }
             }
             payload.image = imageData;
-            response = await this.apiClient.interrogate(payload);
+            response = await this.apiClient.tagger(payload);
           } else {
             return {
               success: false,
               error: 'Image parameter is required for tagging'
             };
           }
+          break;
+
+        case 'extras_combined':
+          // Combined extras processing (RemBG + Upscale, etc.) - Dynamic execution
+          if (!params.image) {
+            return {
+              success: false,
+              error: 'Image parameter is required for combined extras processing'
+            };
+          }
+
+          // Read image file and convert to base64 if it's a file path
+          let combinedImageData = params.image;
+          if (!params.image.startsWith('data:') && !params.image.match(/^[A-Za-z0-9+/]+=*$/)) {
+            const path = require('path');
+            try {
+              const resolvedPath = path.resolve(params.image);
+              if (fs.existsSync(resolvedPath)) {
+                const buffer = fs.readFileSync(resolvedPath);
+                combinedImageData = buffer.toString('base64');
+              }
+            } catch (e) {
+              // If it fails, assume it's already base64 data
+            }
+          }
+
+          let currentImage = combinedImageData;
+          let upscaleInfo = '';
+          let rembgInfo = '';
+          let allOperations: string[] = [];
+
+          // Step 1: Upscale processing (if specified)
+          const upscalerModel = params.upscaler_1 || preset.settings?.upscaler_1;
+          if (upscalerModel && upscalerModel.toLowerCase() !== "none") {
+            const upscalePayload = {
+              image: currentImage,
+              upscaler_1: upscalerModel,
+              upscaling_resize: params.upscaling_resize || preset.settings?.upscaling_resize || 4,
+              upscaler_2: params.upscaler_2 || preset.settings?.upscaler_2 || "None",
+              extras_upscaler_2_visibility: params.extras_upscaler_2_visibility || preset.settings?.extras_upscaler_2_visibility || 0,
+              gfpgan_visibility: params.gfpgan_visibility || preset.settings?.gfpgan_visibility || 0,
+              codeformer_visibility: params.codeformer_visibility || preset.settings?.codeformer_visibility || 0,
+              codeformer_weight: params.codeformer_weight || preset.settings?.codeformer_weight || 0,
+              upscale_first: params.upscale_first || preset.settings?.upscale_first || false
+            };
+
+            console.log('[Combined] Executing Upscale with:', upscalerModel);
+            const upscaleResponse = await this.apiClient.extrasSingleImage(upscalePayload);
+            currentImage = upscaleResponse.image;
+
+            // Extract upscale info from html_info
+            const upscaleMatch = upscaleResponse.html_info?.match(/<p>(.*?)<\/p>/);
+            if (upscaleMatch) {
+              upscaleInfo = upscaleMatch[1];
+            }
+            allOperations.push(`Upscale: ${upscalerModel}`);
+          }
+
+          // Step 2: RemBG processing (if specified)
+          const rembgModel = params.rembg_model || preset.settings?.rembg_model;
+          if (rembgModel && rembgModel.toLowerCase() !== "none") {
+            const rembgPayload = {
+              input_image: currentImage,
+              model: rembgModel,
+              return_mask: params.return_mask || preset.settings?.return_mask || false,
+              alpha_matting: params.alpha_matting || preset.settings?.alpha_matting || false,
+              alpha_matting_foreground_threshold: params.alpha_matting_foreground_threshold || preset.settings?.alpha_matting_foreground_threshold || 270,
+              alpha_matting_background_threshold: params.alpha_matting_background_threshold || preset.settings?.alpha_matting_background_threshold || 10,
+              alpha_matting_erode_size: params.alpha_matting_erode_size || preset.settings?.alpha_matting_erode_size || 10
+            };
+
+            console.log('[Combined] Executing RemBG with:', rembgModel);
+            const rembgResponse = await this.apiClient.rembg(rembgPayload);
+            currentImage = rembgResponse.image;
+            rembgInfo = `Rembg: ${rembgModel}`;
+            allOperations.push(rembgInfo);
+          }
+
+          // Check if any operations were performed
+          if (allOperations.length === 0) {
+            return {
+              success: false,
+              error: 'No operations specified. Please provide either rembg_model or upscaler_1 settings.'
+            };
+          }
+
+          // Build combined HTML info using improved conditional logic
+          let combinedHtmlInfo = '';
+          if (upscaleInfo && rembgInfo) {
+            // Both operations: Upscale + separator + RemBG
+            combinedHtmlInfo = `<p>${upscaleInfo}, ${rembgInfo}</p>`;
+          } else if (upscaleInfo) {
+            // Upscale only
+            combinedHtmlInfo = `<p>${upscaleInfo}</p>`;
+          } else if (rembgInfo) {
+            // RemBG only (no separator)
+            combinedHtmlInfo = `<p>${rembgInfo}</p>`;
+          }
+
+          // Set response for the combined operation
+          response = {
+            image: currentImage,
+            html_info: combinedHtmlInfo
+          };
           break;
 
         default:
@@ -1140,11 +1427,81 @@ export class MCPServer {
             }
           };
         }
+      } else if (preset.type === 'tagger') {
+        // Tagger response - convert to comma-separated tags
+        const taggerResponse = response as any;
+        if (taggerResponse.caption && taggerResponse.caption.tag) {
+          const threshold = preset.settings?.threshold || 0.35;
+          const tags = Object.entries(taggerResponse.caption.tag)
+            .filter(([tag, confidence]: [string, any]) => confidence >= threshold)
+            .sort(([, a]: [string, any], [, b]: [string, any]) => b - a) // Sort by confidence descending
+            .map(([tag]: [string, any]) => tag);
+
+          const promptTags = tags.join(', ');
+
+          return {
+            success: true,
+            data: {
+              caption: promptTags,
+              raw_data: taggerResponse
+            },
+            metadata: {
+              preset: presetName,
+              type: preset.type,
+              threshold: threshold,
+              tag_count: tags.length
+            }
+          };
+        }
       } else if (preset.type === 'extras') {
         // Extras response with processed image
         const extrasResponse = response as any;
         if (extrasResponse.image) {
-          const savedFiles = await this.saveImages([extrasResponse.image], presetName);
+          let savedFiles: string[];
+
+          // Special handling for RemBG and Upscale to preserve PNG Info
+          if (extrasResponse.html_info && (preset.settings?.rembg_model || preset.settings?.upscaler_1)) {
+            // Read original PNG Info before processing
+            let originalPngInfo = null;
+            try {
+              originalPngInfo = await this.apiClient.pngInfo(params.image);
+            } catch (error) {
+              console.log('[Extras] Could not read original PNG Info:', error);
+            }
+
+            savedFiles = await this.saveImagesWithPngInfo([extrasResponse.image], presetName, extrasResponse.html_info, originalPngInfo);
+          } else {
+            // Use standard save for other extras processing
+            savedFiles = await this.saveImages([extrasResponse.image], presetName);
+          }
+
+          return {
+            success: true,
+            data: {
+              images: savedFiles,
+              html_info: extrasResponse.html_info
+            },
+            metadata: {
+              preset: presetName,
+              type: preset.type
+            }
+          };
+        }
+      } else if (preset.type === 'extras_combined') {
+        // Combined extras processing response handling
+        const extrasResponse = response as any;
+        if (extrasResponse.image) {
+          // Read original PNG Info before processing
+          let originalPngInfo = null;
+          try {
+            originalPngInfo = await this.apiClient.pngInfo(params.image);
+          } catch (error) {
+            console.log('[Combined] Could not read original PNG Info:', error);
+          }
+
+          // Save with combined PNG Info preservation
+          const savedFiles = await this.saveImagesWithPngInfo([extrasResponse.image], presetName, extrasResponse.html_info, originalPngInfo);
+
           return {
             success: true,
             data: {
@@ -1203,6 +1560,167 @@ export class MCPServer {
     }
 
     return savedFiles;
+  }
+
+  /**
+   * Save images with PNG Info embedded (for Extras: RemBG, Upscale, etc.)
+   */
+  private async saveImagesWithPngInfo(images: string[], presetName: string, htmlInfo: string, originalPngInfo?: any): Promise<string[]> {
+    const outputDir = path.join(process.cwd(), 'output');
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    const savedFiles: string[] = [];
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+
+    for (let i = 0; i < images.length; i++) {
+      const filename = `${presetName}-${timestamp}${i > 0 ? `-${i}` : ''}.png`;
+      const filepath = path.join(outputDir, filename);
+
+      // Decode base64 image
+      const buffer = Buffer.from(images[i], 'base64');
+
+      try {
+        // Use png-chunk libraries to embed PNG Info
+        const extract = require('png-chunks-extract');
+        const encode = require('png-chunks-encode');
+        const text = require('png-chunk-text');
+
+        // Extract chunks from the image buffer
+        const chunks = extract(buffer);
+
+        // Use original PNG info if available, otherwise extract from htmlInfo
+        let originalParameters = htmlInfo;
+        let existingPostprocessing = '';
+
+        if (originalPngInfo && originalPngInfo.info) {
+          // Use the original PNG info as parameters
+          originalParameters = originalPngInfo.info;
+
+          // Get existing postprocessing info from original image
+          if (originalPngInfo.items && originalPngInfo.items.postprocessing) {
+            existingPostprocessing = originalPngInfo.items.postprocessing;
+          }
+        }
+
+        // Extract new postprocessing info from current htmlInfo
+        let newPostprocessingInfo = '';
+        const postprocessingMatch = htmlInfo.match(/<p>(.*?)<\/p>/);
+        if (postprocessingMatch) {
+          newPostprocessingInfo = postprocessingMatch[1];
+        }
+
+        // Improved conditional logic for PNG Info assembly
+        let postprocessingInfo = '';
+        let extrasInfo = '';
+
+        // Parse operation types from the info strings
+        const hasUpscaleInfo = (info: string) => /upscale|Postprocess upscaler/i.test(info);
+        const hasRemBGInfo = (info: string) => /rembg/i.test(info);
+
+        const existingUpscale = existingPostprocessing && hasUpscaleInfo(existingPostprocessing);
+        const existingRemBG = existingPostprocessing && hasRemBGInfo(existingPostprocessing);
+        const newUpscale = newPostprocessingInfo && hasUpscaleInfo(newPostprocessingInfo);
+        const newRemBG = newPostprocessingInfo && hasRemBGInfo(newPostprocessingInfo);
+
+        // Collect Upscale info (prioritize existing, then new)
+        let upscaleInfo = '';
+        if (existingUpscale) {
+          upscaleInfo = existingPostprocessing;
+        } else if (newUpscale) {
+          upscaleInfo = newPostprocessingInfo;
+        }
+
+        // Collect RemBG info (prioritize new, then existing)
+        let rembgInfo = '';
+        if (newRemBG) {
+          rembgInfo = newPostprocessingInfo;
+        } else if (existingRemBG) {
+          rembgInfo = existingPostprocessing;
+        }
+
+        // Apply the improved conditional assembly logic
+        if (upscaleInfo && rembgInfo) {
+          // Both operations: Upscale + separator + RemBG
+          postprocessingInfo = `${upscaleInfo}, ${rembgInfo}`;
+          extrasInfo = `${upscaleInfo}, ${rembgInfo}`;
+        } else if (upscaleInfo) {
+          // Upscale only
+          postprocessingInfo = upscaleInfo;
+          extrasInfo = upscaleInfo;
+        } else if (rembgInfo) {
+          // RemBG only (no separator)
+          postprocessingInfo = rembgInfo;
+          extrasInfo = rembgInfo;
+        } else {
+          // Fallback to simple combination if parsing fails
+          if (existingPostprocessing && newPostprocessingInfo) {
+            postprocessingInfo = `${existingPostprocessing}, ${newPostprocessingInfo}`;
+            extrasInfo = `${existingPostprocessing}, ${newPostprocessingInfo}`;
+          } else if (existingPostprocessing) {
+            postprocessingInfo = existingPostprocessing;
+            extrasInfo = existingPostprocessing;
+          } else if (newPostprocessingInfo) {
+            postprocessingInfo = newPostprocessingInfo;
+            extrasInfo = newPostprocessingInfo;
+          }
+        }
+
+        // Create 3 separate tEXt chunks in SD WebUI standard format
+        const parametersChunk = text.encode('parameters', originalParameters);
+        const postprocessingChunk = text.encode('postprocessing', postprocessingInfo);
+        const extrasChunk = text.encode('extras', extrasInfo);
+
+        // Insert the text chunks before the IEND chunk (last chunk)
+        chunks.splice(-1, 0, parametersChunk, postprocessingChunk, extrasChunk);
+
+        // Encode chunks back to PNG buffer
+        const newBuffer = Buffer.from(encode(chunks));
+
+        // Save the modified PNG
+        fs.writeFileSync(filepath, newBuffer);
+        console.log(`[Extras] Saved image with PNG Info: ${filepath}`);
+      } catch (error) {
+        // Fallback to simple save if PNG processing fails
+        console.log(`[Extras] Failed to embed PNG Info, using simple save: ${error}`);
+        fs.writeFileSync(filepath, buffer);
+      }
+
+      savedFiles.push(filepath);
+
+      if (this.config.debug) {
+        console.log(`Saved image with Extras PNG Info: ${filepath}`);
+      }
+    }
+
+    return savedFiles;
+  }
+
+  /**
+   * Extract postprocessing info from html_info
+   */
+  private extractPostprocessing(htmlInfo: string): string {
+    const lines = htmlInfo.split('\n');
+    for (const line of lines) {
+      if (line.startsWith('postprocessing:')) {
+        return line.replace('postprocessing:', '').trim();
+      }
+    }
+    return '';
+  }
+
+  /**
+   * Extract extras info from html_info
+   */
+  private extractExtras(htmlInfo: string): string {
+    const lines = htmlInfo.split('\n');
+    for (const line of lines) {
+      if (line.startsWith('extras:')) {
+        return line.replace('extras:', '').trim();
+      }
+    }
+    return '';
   }
 
   /**

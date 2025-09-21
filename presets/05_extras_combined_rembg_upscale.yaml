@@ -1,0 +1,43 @@
+# Combined RemBG + Upscale - Dynamic execution (skip if not specified)
+name: extras_combined_rembg_upscale
+type: extras_combined
+description: "Combined background removal + upscaling - set either to 'none' to skip that operation"
+
+settings:
+  # RemBG settings (optional - skip if rembg_model not specified)
+  rembg_model: "isnet-anime"        # RemBG model: u2net, isnet-anime, silueta, etc. (REMOVE TO SKIP)
+  # return_mask: false              # Return mask instead of processed image
+  # alpha_matting: false            # Enable alpha matting
+  # alpha_matting_foreground_threshold: 270
+  # alpha_matting_background_threshold: 10
+  # alpha_matting_erode_size: 10
+
+  # Upscale settings (optional - skip if upscaler_1 not specified)
+  upscaler_1: "4x-UltraSharp"       # Primary upscaler (REMOVE TO SKIP)
+  upscaling_resize: 2               # Scale factor (1-8)
+
+  # Optional secondary upscaler for mixing
+  upscaler_2: "None"                # Second upscaler
+  extras_upscaler_2_visibility: 0   # Mix ratio (0-1)
+
+  # Face restoration (optional)
+  gfpgan_visibility: 0              # GFPGAN strength (0-1)
+  codeformer_visibility: 0          # CodeFormer strength (0-1)
+  codeformer_weight: 0              # CodeFormer fidelity (0-1)
+
+  # Processing order
+  upscale_first: false              # Upscale before face restoration
+
+# Available RemBG models:
+# - u2net (General purpose)
+# - isnet-anime (Anime optimized)
+# - silueta (High accuracy)
+# - sam (Segment Anything Model)
+
+# Available upscaler models:
+# - 4x-UltraSharp (General purpose, sharp)
+# - 4x_fatal_Anime_500000_G (Anime optimized)
+# - R-ESRGAN 4x+ (General purpose)
+# - R-ESRGAN 4x+ Anime6B (Anime optimized)
+# - LDSR (Latent Diffusion Super Resolution)
+# - SwinIR 4x (Transformer based)

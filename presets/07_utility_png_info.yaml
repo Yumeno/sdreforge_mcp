@@ -1,4 +1,4 @@
-# (15) PNG Info utility
+# (06) PNG Info utility
 name: utility_png_info
 type: png-info
 description: "Extract generation parameters from PNG metadata"

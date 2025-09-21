@@ -1,5 +1,5 @@
 # ================================================================================================
-# (27) Ultimate Dynamic Preset IMG2IMG - Complete Parameterization for All SD WebUI Reforge Features
+# (02) Ultimate Dynamic Preset IMG2IMG - Complete Parameterization for All SD WebUI Reforge Features
 # ================================================================================================
 #
 # This preset represents a revolutionary approach to AI image generation configuration.
@@ -11,79 +11,104 @@
 # ================================================================================================
 #
 # Basic IMG2IMG Generation:
-#   init_image="input.png"
+#   init_image="input.png"  # Required: source image
 #   prompt="anime girl portrait"
-#   denoising_strength=0.5
-#   seed=12345
+#   denoising_strength=0.5  # Default: 0.5 (0.0-1.0, higher = more change)
+#   seed=12345  # Default: -1 (random)
+#   resize_mode=0  # Default: 0 (0=resize, 1=crop+resize, 2=resize+fill)
 #
 # Strong Transformation:
 #   init_image="photo.png"
 #   prompt="anime style artwork"
-#   denoising_strength=0.75
+#   denoising_strength=0.75  # Higher = more dramatic change
 #
 # Inpaint Mode (Masked Editing):
 #   init_image="original.png"
 #   mask_image="mask.png"  # White=edit, Black=preserve
 #   prompt="blue sky with clouds"
-#   mask_blur=8
-#   inpainting_fill=1  # Use original
-#   inpaint_full_res=true
+#   mask_blur=8  # Default: 4 (blur mask edges)
+#   inpainting_fill=1  # Default: 1 (0=fill, 1=original, 2=latent noise, 3=latent nothing)
+#   inpaint_full_res=true  # Default: true (process only masked area)
+#   inpaint_full_res_padding=0  # Default: 0 (padding around mask)
+#   inpainting_mask_invert=0  # Default: 0 (0=normal, 1=invert mask)
 #
 # ControlNet Single Unit:
 #   prompt="colorful anime girl"
-#   controlnet_image="pose.png"
-#   controlnet_model_1="CN-anytest3_animagine4_A"
-#   controlnet_weight_1=0.8
+#   controlnet_image="pose.png"  # Required for Unit 1
+#   controlnet_model_1="CN-anytest3_animagine4_A"  # Default: "CN-anytest3_animagine4_A"
+#   controlnet_weight_1=0.8  # Default: 1.0 (control strength 0.0-2.0)
+#   controlnet_module_1="None"  # Default: "None" (preprocessor)
+#   # Additional params: guidance_start, guidance_end, control_mode, etc.
 #
-# ControlNet Multi-Unit:
+# ControlNet Multi-Unit (up to 10 units available):
 #   prompt="anime girl in water"
-#   controlnet_image="pose.png"
-#   controlnet_image_2="style.png"
-#   controlnet_image_3="effect.png"
+#   controlnet_image="pose.png"      # Unit 1 (controlnet_model_1)
+#   controlnet_image_2="style.png"   # Unit 2 (controlnet_model_2)
+#   controlnet_image_3="effect.png"  # Unit 3 (controlnet_model_3)
+#   # Up to controlnet_image_10 can be specified
 #   controlnet_model_1="CN-posetest_v2_1"
 #   controlnet_model_2="CN-anytest4_animagine4_A"
 #   controlnet_weight_1=0.5
 #   controlnet_weight_2=0.6
 #
 #
-# ADetailer Customization:
+# ADetailer Customization (2-15 models available):
 #   prompt="anime girl full body"
 #   adetailer_model_2="hand_yolov8n.pt"
 #   adetailer_model_3="person_yolov8n-seg.pt"
+#   adetailer_model_4="eye_yolov8n.pt"
+#   # Up to adetailer_model_15 can be specified
 #
 # Batch Generation:
 #   prompt="anime girl variations"
-#   batch_size=4
-#   n_iter=2
+#   batch_size=4  # Default: 1 (parallel generation)
+#   n_iter=2  # Default: 1 (iterations)
 #   # Generates 8 images total (4 parallel x 2 iterations)
+#   steps=28  # Default: 28 (inference steps)
+#   cfg_scale=5  # Default: 5 (prompt adherence)
+#   width=1024  # Default: 1024
+#   height=1024  # Default: 1024
+#   sampler_name="Euler a"  # Default: "Euler a"
+#   scheduler="Automatic"  # Default: "Automatic"
 #
 # Dynamic Prompts Expansion:
 #   prompt="{cute|beautiful|elegant} anime girl with {red|blue|black} hair"
-#   enable_dynamic_prompts=true
+#   enable_dynamic_prompts=true  # Default: true
 #   batch_size=4
 #   # Automatic prompt expansion for each image
 #
 # Magic Prompt Enhancement:
 #   prompt="anime girl"
 #   enable_dynamic_prompts=true
-#   magic_prompt=true
+#   magic_prompt=true  # Default: false
 #   # AI automatically enhances and details the prompt
+#
+# Advanced Dynamic Prompts:
+#   prompt="anime girl with {red|blue|green} hair"
+#   enable_dynamic_prompts=true
+#   combinatorial_generation=true  # Default: false
+#   max_generations=8  # Default: 0 (unlimited)
 #
 # Regional Prompter Matrix Mode:
 #   prompt="2 girls ADDBASE red hair, blue eyes ADDCOL green hair, red eyes"
-#   rp_active=true
-#   rp_mode="Matrix"
-#   rp_matrix_submode="Columns"
-#   rp_divide_ratio="1,1"
+#   rp_active=true  # Default: false
+#   rp_mode="Matrix"  # Default: "Matrix" (options: "Matrix", "Mask")
+#   rp_matrix_submode="Columns"  # Default: "Columns" (options: "Columns", "Rows", "Cols;Rows")
+#   rp_divide_ratio="1,1"  # Default: "1,1" (e.g., "1,2,1" = 25/50/25)
+#   rp_base_ratio="0.2"  # Default: "0.2" (base influence 0.0-1.0)
+#   rp_calc_mode="Attention"  # Default: "Attention" (options: "Attention", "Latent")
 #
-# Regional Prompter Mask Mode:
+# Regional Prompter Mask Mode (unlimited masks):
 #   prompt="fantasy warrior"
 #   rp_active=true
-#   rp_mode="Mask"
-#   rp_mask_1="face_area.png"
-#   rp_mask_2="body_area.png"
-#   rp_prompt_1="beautiful detailed face"
-#   rp_prompt_2="golden armor"
+#   rp_mode="Mask"  # Switch to mask mode
+#   rp_mask_1="face_area.png"    # Mask 1
+#   rp_mask_2="body_area.png"    # Mask 2
+#   rp_mask_3="background.png"   # Mask 3 (unlimited)
+#   rp_prompt_1="beautiful detailed face"  # Prompt for mask 1
+#   rp_prompt_2="golden armor"  # Prompt for mask 2
+#   rp_prompt_3="epic landscape"  # Prompt for mask 3
+#   # Additional masks: rp_mask_4, rp_mask_5, etc. (no limit)
 #
 # Complete Feature Combination IMG2IMG:
 #   init_image="base.png"
@@ -100,9 +125,9 @@
 #
 # ================================================================================================
 
-name: img2img_cn_multi_3units
+name: img2img_dynamic
 type: img2img
-description: "Ultimate dynamic IMG2IMG preset - ControlNet (0-3 units) + ADetailer (1-4 models) + Full parameterization"
+description: "Ultimate dynamic Image-to-Image with ControlNet (10 units), ADetailer (15 models), Regional Prompter (unlimited masks), Dynamic Prompts, inpainting support, and full SD WebUI Reforge features"
 
 base_settings:
   # IMG2IMG specific parameters
@@ -146,45 +171,40 @@ prompt_template:
 
 extensions:
   # ADetailer: Face/Hand/Person/Eye Detection and Enhancement
-  # Usage: Specify adetailer_model_2/3/4 to enable additional models
+  # Usage: Specify adetailer_model_2 to enable additional model
   # Example: adetailer_model_2="hand_yolov8n.pt" enables face+hand detection
   adetailer:
     enabled: true
+    max_models: 2
     models:
       # Model 1: Always enabled - Face detection (default)
       - model: "face_yolov8n.pt"
         confidence: 0.3
 
-      # Model 2: Template (enabled via adetailer_model_2 parameter)
-      # Common options: "hand_yolov8n.pt", "person_yolov8n-seg.pt"
-      - model: "hand_yolov8n.pt"
+      # Model 2: Disabled by default (set adetailer_model_2="<model_name>" to enable)
+      # Common options: "hand_yolov8n.pt", "person_yolov8n-seg.pt", "eye_yolov8n.pt"
+      - model: "None"
         confidence: 0.3
         enabled: false
 
-      # Model 3: Template (enabled via adetailer_model_3 parameter)
-      # Common options: "person_yolov8n-seg.pt", "mediapipe_face_mesh_eyes_only"
-      - model: "person_yolov8n-seg.pt"
-        confidence: 0.3
-        enabled: false
+      # Additional models can be added by increasing max_models and specifying adetailer_model_3, etc.
+      # Example: max_models: 4, adetailer_model_3="person_yolov8n-seg.pt"
+      # Available models: face_yolov8*.pt, hand_yolov8*.pt, person_yolov8*-seg.pt, eye_yolov8*.pt, etc.
 
-      # Model 4: Template (enabled via adetailer_model_4 parameter)
-      # Common options: "eye_yolov8n.pt", "mediapipe_face_mesh_eyes_only"
-      - model: "eye_yolov8n.pt"
-        confidence: 0.3
-        enabled: false
-
-  # ControlNet: Image Structure Control (0-3 units)
+  # ControlNet: Image Structure Control
   # Usage: Provide controlnet_image/controlnet_image_2/controlnet_image_3 to enable units
   # Override: controlnet_model_1/2/3, controlnet_weight_1/2/3, controlnet_module_1/2/3
   # Models auto-resolve: "CN-anytest3_animagine4_A" → "CN-anytest3_animagine4_A [9ca08fae]"
   controlnet:
     enabled: true
+    max_units: 3
     units:
-      # Unit 0: Primary control (enabled when controlnet_image provided)
+      # Unit 0: Pre-configured but disabled by default
+      # Enable with: controlnet_enable_1=true AND controlnet_image="path/to/image.png"
       # Override with: controlnet_model_1, controlnet_weight_1, controlnet_module_1
       - module: "None"  # "None"=preprocessed, "canny"=edge, "openpose"=pose
-        model: "CN-anytest3_animagine4_A"  # Will auto-resolve to full name with hash
-        weight: 1.0     # Control strength (0.0-2.0)
+        model: "CN-anytest4_animagine4_A"  # Pre-configured model
+        weight: 0.75    # Pre-configured weight
         guidance_start: 0.0
         guidance_end: 1.0
         control_mode: 0
@@ -192,12 +212,13 @@ extensions:
         processor_res: 512
         threshold_a: 64
         threshold_b: 64
-        enabled: true
+        enabled: false  # Disabled by default
 
-      # Unit 1: Secondary control (enabled when controlnet_image_2 provided)
+      # Unit 1: Disabled by default
+      # Enable with: controlnet_enable_2=true AND controlnet_image_2="path/to/image.png"
       # Override with: controlnet_model_2, controlnet_weight_2, controlnet_module_2
       - module: "None"
-        model: "CN-anytest3_animagine4_B"
+        model: "None"
         weight: 1.0
         guidance_start: 0.0
         guidance_end: 0.7   # Ends earlier for subtle effect
@@ -208,10 +229,11 @@ extensions:
         threshold_b: 64
         enabled: false
 
-      # Unit 2: Tertiary control (enabled when controlnet_image_3 provided)
+      # Unit 2: Disabled by default
+      # Enable with: controlnet_enable_3=true AND controlnet_image_3="path/to/image.png"
       # Override with: controlnet_model_3, controlnet_weight_3, controlnet_module_3
       - module: "None"
-        model: "CN-anytest4_animagine4_A"
+        model: "None"
         weight: 1.0
         guidance_start: 0.0
         guidance_end: 0.5   # Subtle effect only
@@ -221,6 +243,10 @@ extensions:
         threshold_a: 64
         threshold_b: 64
         enabled: false
+
+      # Additional units can be added by increasing max_units and specifying controlnet_enable_4=true, etc.
+      # Example: max_units: 5, controlnet_enable_4=true, controlnet_image_4="pose.png"
+      # Available models: CN-anytest*, CN-openpose*, CN-canny*, CN-depth*, etc.
 
   # Dynamic Prompts: Automatic prompt expansion and variation
   # Usage: Use {option1|option2} syntax in prompts for automatic expansion
