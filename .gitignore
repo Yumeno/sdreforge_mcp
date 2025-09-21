@@ -22,7 +22,32 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+mcp-*.log
+payload-*.log
 
 # Temporary files
 *.tmp
 *.temp
+
+# Development artifacts
+output/
+test_outputs/
+test-*.js
+test_*.js
+test_*.py
+batch_*.js
+create_*.py
+fix-*.sh
+fix-*.ps1
+
+# Generated images and test data
+*.png
+*.jpg
+*.jpeg
+*.webp
+!docs/**/*.png
+!docs/**/*.jpg
+!preset-templates/**/*.png
+
+# Development environment
+.env.development
