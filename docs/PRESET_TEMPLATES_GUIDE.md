@@ -5,6 +5,96 @@
 プリセットマネージャーは、SD WebUI Reforgeの複雑な設定をYAMLファイルで管理し、再利用可能にします。
 このガイドでは、利用可能な全機能と書式について説明します。
 
+## 🎯 テンプレートベースシステム
+
+### テンプレートシステムの利用
+
+環境変数を使用してユーザー固有のデフォルト設定を持つプリセットを生成できます。
+
+#### 初回セットアップ
+
+```bash
+# 1. 設定サンプル生成
+npm run setup:presets:sample
+
+# 2. 設定ファイルをコピー
+# Windows (Command Prompt): copy .env.sample .env
+# Windows (PowerShell):     Copy-Item .env.sample .env
+# Linux/macOS:              cp .env.sample .env
+
+# 3. 設定カスタマイズ
+# .env ファイルを編集してデフォルト値を設定
+
+# 4. プリセット生成
+npm run setup:presets
+```
+
+#### インタラクティブ設定（推奨）
+
+```bash
+# インタラクティブ設定（ENTERで推奨設定を使用）
+npm run setup:presets:interactive
+```
+
+**推奨設定の自動適用**:
+- デフォルトモデル: `sd_animagineXL40_v4Opt`
+- デフォルトサンプラー: `Euler a`
+- デフォルトステップ数: `28`
+- CFGスケール: `7`
+- 解像度: `1024x1024`
+
+#### テンプレート変数
+
+**利用可能な変数**:
+```env
+# 基本生成設定
+DEFAULT_CHECKPOINT=sd_animagineXL40_v4Opt
+DEFAULT_SAMPLER=Euler a
+DEFAULT_STEPS=28
+DEFAULT_CFG_SCALE=7
+DEFAULT_WIDTH=1024
+DEFAULT_HEIGHT=1024
+
+# プロンプト設定
+DEFAULT_POSITIVE_SUFFIX=masterpiece, high quality, absurdres
+DEFAULT_NEGATIVE=lowres, bad anatomy, bad hands, text, error, missing finger, extra digits, fewer digits, cropped, worst quality, low quality
+
+# 拡張機能設定
+CONTROLNET_MAX_UNITS=3
+ADETAILER_MAX_MODELS=2
+ADETAILER_DEFAULT_MODEL=face_yolov8n.pt
+ADETAILER_CONFIDENCE=0.3
+
+# 高度な設定
+ENABLE_HIRES_FIX=false
+HR_UPSCALER=R-ESRGAN 4x+ Anime6B
+HR_SCALE=2.0
+HR_DENOISING_STRENGTH=0.7
+```
+
+#### テンプレートから手動プリセット作成
+
+テンプレートシステムで初回作成後は、生成されたYAMLをコピーして新しいプリセットを作成できます：
+
+```bash
+# 1. 既存プリセットをコピー
+cp presets/01_txt2img_dynamic.yaml presets/17_custom_preset.yaml
+
+# 2. ファイルを編集
+# - name フィールドを変更: custom_preset
+# - description を更新
+# - 必要に応じて設定をカスタマイズ
+
+# 3. ビルド・テスト
+npm run build
+# Claude Code 再起動
+```
+
+**手動作成のメリット**:
+- 既存設定を継承
+- 特定の用途に特化した設定
+- テンプレートより自由度が高い
+
 ## 対応プリセットタイプ
 
 ### 1. 画像生成プリセット

@@ -1,0 +1,7 @@
+# (07) utility check_model
+name: utility_check_model
+type: utility
+description: "Check current model checkpoint"
+
+settings:
+  action: "check_model"

@@ -155,6 +155,320 @@ extensions:
 - `controlnet_enable_1`, `controlnet_enable_2`, ..., `controlnet_enable_5`
 - その他 ControlNet 関連パラメータ 5 セット
 
+## 🎯 テンプレートシステム開発
+
+### テンプレートベースプリセット初期化システム
+
+テンプレートシステムは、環境変数を使用してユーザー固有のデフォルト設定を持つプリセットを生成する仕組みです。
+
+#### アーキテクチャ概要
+
+```
+Templates (preset-templates/) → Environment Variables (.env) → Generated Presets (presets/)
+         ↓                              ↓                           ↓
+   テンプレートファイル           設定カスタマイズ              実際のプリセット
+```
+
+#### 主要コンポーネント
+
+**1. TemplateProcessor (src/setup/template-processor.ts)**
+
+```typescript
+export class TemplateProcessor {
+  private config: Record<string, string | number | boolean>;
+
+  constructor(envPath?: string) {
+    this.config = this.loadConfig(envPath);
+  }
+
+  // テンプレート変数の置換処理
+  private replaceVariables(content: string): string {
+    return content.replace(/\{\{([A-Z_][A-Z0-9_]*)\}\}/g, (match, varName) => {
+      if (varName in this.config) {
+        return String(this.config[varName]);
+      }
+      return match; // 未定義変数はそのまま残す
+    });
+  }
+
+  // プリセット生成
+  async generatePresets(): Promise<void> {
+    const templates = await this.getTemplateFiles();
+
+    for (const template of templates) {
+      const content = await fs.readFile(template, 'utf-8');
+      const processed = this.replaceVariables(content);
+      const outputPath = this.getOutputPath(template);
+
+      await fs.writeFile(outputPath, processed, 'utf-8');
+    }
+  }
+}
+```
+
+**2. 設定CLI (src/setup/setup-cli.ts)**
+
+```typescript
+export class SetupCLI {
+  // インタラクティブ設定
+  async runInteractiveSetup(): Promise<void> {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+
+    try {
+      console.log('\n🎯 テンプレートシステム設定');
+
+      const checkpoint = await this.question(rl, 'デフォルトモデル: ');
+      const sampler = await this.question(rl, 'デフォルトサンプラー: ');
+      const steps = await this.question(rl, 'デフォルトステップ数: ');
+
+      // .envファイルに設定を保存
+      await this.saveConfiguration({
+        DEFAULT_CHECKPOINT: checkpoint,
+        DEFAULT_SAMPLER: sampler,
+        DEFAULT_STEPS: parseInt(steps) || 28
+      });
+
+    } finally {
+      rl.close();
+    }
+  }
+}
+```
+
+**3. マイグレーション (src/setup/migrate-presets.ts)**
+
+```typescript
+export class PresetMigrator {
+  // 既存プリセットの分析
+  async analyzeCurrentPresets(): Promise<MigrationReport> {
+    const presets = await this.loadAllPresets();
+    const deprecated = presets.filter(p => this.isDeprecated(p));
+    const active = presets.filter(p => !this.isDeprecated(p));
+
+    return {
+      total: presets.length,
+      active: active.length,
+      deprecated: deprecated.length,
+      recommendations: this.generateRecommendations(presets)
+    };
+  }
+
+  // 安全なマイグレーション実行
+  async migrate(options: MigrationOptions): Promise<void> {
+    // 1. バックアップ作成
+    await this.createBackup();
+
+    // 2. 非推奨プリセットを移動
+    await this.moveDeprecatedPresets();
+
+    // 3. アクティブプリセットを整理
+    await this.reorganizeActivePresets();
+
+    // 4. 検証
+    await this.validateMigration();
+  }
+}
+```
+
+#### テンプレート変数システム
+
+**変数命名規則**:
+```
+{{VARIABLE_NAME}}  - 大文字とアンダースコア、英数字のみ
+```
+
+**サポートされる変数タイプ**:
+```typescript
+interface TemplateConfig {
+  // 基本生成設定
+  DEFAULT_CHECKPOINT: string;        // "sd_animagineXL40_v4Opt"
+  DEFAULT_SAMPLER: string;           // "Euler a"
+  DEFAULT_STEPS: number;             // 28
+  DEFAULT_CFG_SCALE: number;         // 7
+  DEFAULT_WIDTH: number;             // 1024
+  DEFAULT_HEIGHT: number;            // 1024
+
+  // プロンプト設定
+  DEFAULT_POSITIVE_SUFFIX: string;   // "masterpiece, high quality"
+  DEFAULT_NEGATIVE: string;          // "lowres, bad quality"
+
+  // 拡張機能設定
+  CONTROLNET_MAX_UNITS: number;      // 3
+  ADETAILER_MAX_MODELS: number;      // 2
+  ADETAILER_DEFAULT_MODEL: string;   // "face_yolov8n.pt"
+
+  // 高度な設定
+  ENABLE_HIRES_FIX: boolean;         // false
+  HR_UPSCALER: string;               // "R-ESRGAN 4x+ Anime6B"
+  HR_SCALE: number;                  // 2.0
+}
+```
+
+#### テンプレートファイル例
+
+**preset-templates/01_txt2img_dynamic.yaml.template**:
+```yaml
+name: txt2img_dynamic
+type: txt2img
+description: "{{TEMPLATE_DESCRIPTION}}"
+
+base_settings:
+  checkpoint: "{{DEFAULT_CHECKPOINT}}"
+  sampler_name: "{{DEFAULT_SAMPLER}}"
+  steps: {{DEFAULT_STEPS}}
+  cfg_scale: {{DEFAULT_CFG_SCALE}}
+  width: {{DEFAULT_WIDTH}}
+  height: {{DEFAULT_HEIGHT}}
+
+prompt_template:
+  positive_suffix: "{{DEFAULT_POSITIVE_SUFFIX}}"
+  negative: "{{DEFAULT_NEGATIVE}}"
+
+extensions:
+  adetailer:
+    enabled: {{ENABLE_ADETAILER}}
+    max_models: {{ADETAILER_MAX_MODELS}}
+    models:
+      - model: "{{ADETAILER_DEFAULT_MODEL}}"
+        confidence: {{ADETAILER_CONFIDENCE}}
+
+  controlnet:
+    enabled: {{ENABLE_CONTROLNET}}
+    max_units: {{CONTROLNET_MAX_UNITS}}
+    units:
+      - module: "None"
+        model: "{{CONTROLNET_DEFAULT_MODEL}}"
+        weight: {{CONTROLNET_DEFAULT_WEIGHT}}
+
+  hires_fix:
+    enable_hr: {{ENABLE_HIRES_FIX}}
+    hr_upscaler: "{{HR_UPSCALER}}"
+    hr_scale: {{HR_SCALE}}
+    hr_denoising_strength: {{HR_DENOISING_STRENGTH}}
+```
+
+#### 開発ワークフロー
+
+**1. 新しいテンプレート作成**:
+```bash
+# 新しいテンプレートファイル作成
+touch preset-templates/XX_new_template.yaml.template
+
+# テンプレート変数定義
+echo "DEFAULT_NEW_FEATURE=enabled" >> .env.example
+```
+
+**2. 環境変数の追加**:
+```typescript
+// src/setup/template-processor.ts に新しい変数処理を追加
+private getDefaultConfig(): Record<string, any> {
+  return {
+    // 既存の設定...
+    DEFAULT_NEW_FEATURE: 'enabled',
+    NEW_FEATURE_PARAMETER: 10
+  };
+}
+```
+
+**3. テスト**:
+```bash
+# 設定サンプル生成
+npm run setup:presets:sample
+
+# 設定検証
+npm run setup:presets:validate
+
+# プリセット生成
+npm run setup:presets
+
+# ビルド・テスト
+npm run build
+npm test
+```
+
+#### クロスプラットフォーム対応
+
+**環境固有の処理**:
+```typescript
+// プラットフォーム検出
+const platform = process.platform;
+
+if (platform === 'win32') {
+  // Windows固有の処理
+  console.log('Windows環境での設定手順:');
+  console.log('   Command Prompt: copy .env.sample .env');
+  console.log('   PowerShell:     Copy-Item .env.sample .env');
+} else {
+  // Unix系システム
+  console.log('Unix環境での設定手順:');
+  console.log('   cp .env.sample .env');
+}
+```
+
+**ファイル操作の互換性**:
+```typescript
+// fs.cpSync のフォールバック実装
+if (fs.cpSync) {
+  // Node.js 16.7.0以降
+  fs.cpSync(source, dest, { recursive: true });
+} else {
+  // 古いバージョン向けフォールバック
+  this.copyDirectorySync(source, dest);
+}
+```
+
+#### エラーハンドリング
+
+**TypeScript エラー対応**:
+```typescript
+try {
+  await this.processTemplate(template);
+} catch (error) {
+  // TypeScript 4.4以降のエラーハンドリング
+  const message = error instanceof Error ? error.message : String(error);
+  this.logger.error(`テンプレート処理エラー: ${message}`);
+  throw new Error(`Template processing failed: ${message}`);
+}
+```
+
+**設定ファイル検証**:
+```typescript
+validateConfig(config: Record<string, any>): void {
+  const required = ['DEFAULT_CHECKPOINT', 'DEFAULT_SAMPLER'];
+
+  for (const key of required) {
+    if (!(key in config)) {
+      throw new Error(`必須設定項目が不足: ${key}`);
+    }
+  }
+
+  // 数値型チェック
+  if (typeof config.DEFAULT_STEPS !== 'number') {
+    throw new Error('DEFAULT_STEPS は数値である必要があります');
+  }
+}
+```
+
+#### NPM スクリプト
+
+**package.json 設定**:
+```json
+{
+  "scripts": {
+    "setup:presets": "tsx src/setup/setup-cli.ts",
+    "setup:presets:sample": "tsx src/setup/setup-cli.ts --sample",
+    "setup:presets:validate": "tsx src/setup/setup-cli.ts --validate",
+    "setup:presets:interactive": "tsx src/setup/setup-cli.ts --interactive",
+    "migrate:presets": "tsx src/setup/migrate-presets.ts",
+    "migrate:presets:dry-run": "tsx src/setup/migrate-presets.ts --dry-run",
+    "migrate:presets:report": "tsx src/setup/migrate-presets.ts --report"
+  }
+}
+```
+
 ## 🔧 拡張機能開発
 
 ### 新しい拡張機能の追加

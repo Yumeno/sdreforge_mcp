@@ -11,7 +11,15 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "lint": "eslint src/**/*.ts",
-    "format": "prettier --write src/**/*.ts"
+    "format": "prettier --write src/**/*.ts",
+    "setup:presets": "tsx src/setup/setup-cli.ts",
+    "setup:presets:interactive": "tsx src/setup/setup-cli.ts --interactive",
+    "setup:presets:quick": "tsx src/setup/setup-cli.ts --generate-sample && tsx src/setup/setup-cli.ts",
+    "setup:presets:validate": "tsx src/setup/setup-cli.ts --validate",
+    "setup:presets:sample": "tsx src/setup/setup-cli.ts --generate-sample",
+    "migrate:presets": "tsx src/setup/migrate-presets.ts",
+    "migrate:presets:report": "tsx src/setup/migrate-presets.ts --report",
+    "migrate:presets:dry-run": "tsx src/setup/migrate-presets.ts --dry-run"
   },
   "repository": {
     "type": "git",

@@ -1,0 +1,36 @@
+# Combined Processing - Upscale Only (Default Configuration)
+name: extras_upscale_dynamic
+type: extras_combined
+description: "Image upscaling (1x-8x) with multiple upscaler models - use 'none' for rembg_model to skip background removal"
+
+settings:
+  # RemBG settings - NOT SPECIFIED (will be skipped by default)
+  # rembg_model: "none"          # Set to "none" to skip RemBG (COMMENTED OUT = use "none" override)
+
+  # Upscale settings - DEFAULT ENABLED
+  upscaler_1: "{{UPSCALER_DEFAULT_MODEL}}"   # Primary upscaler - Override to "none" to skip
+  upscaling_resize: {{UPSCALER_DEFAULT_SCALE}}           # Scale factor (1-8) - Reduced from 4 to 2 for performance
+
+  # Optional secondary upscaler for mixing
+  upscaler_2: "None"            # Second upscaler
+  extras_upscaler_2_visibility: 0  # Mix ratio (0-1)
+
+  # Face restoration (optional)
+  gfpgan_visibility: 0          # GFPGAN strength (0-1)
+  codeformer_visibility: 0      # CodeFormer strength (0-1)
+  codeformer_weight: 0          # CodeFormer fidelity (0-1)
+
+  # Processing order
+  upscale_first: false          # Upscale before face restoration
+
+# Available upscaler models (for reference):
+# - 4x-UltraSharp (General purpose, sharp)
+# - 4x_fatal_Anime_500000_G (Anime optimized)
+# - R-ESRGAN 4x+ (General purpose)
+# - R-ESRGAN 4x+ Anime6B (Anime optimized)
+# - LDSR (Latent Diffusion Super Resolution)
+# - SwinIR 4x (Transformer based)
+# - ScuNET (Noise reduction)
+# - ScuNET PSNR (Optimized for PSNR)
+# - Lanczos (Fast, basic)
+# - Nearest (Fastest, pixelated)

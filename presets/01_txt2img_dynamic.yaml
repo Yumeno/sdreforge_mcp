@@ -93,7 +93,7 @@
 
 name: txt2img_dynamic
 type: txt2img
-description: "Ultimate dynamic Text-to-Image with ControlNet (10 units), ADetailer (15 models), Regional Prompter (unlimited masks), Dynamic Prompts, and full SD WebUI Reforge features"
+description: "Ultimate dynamic Text-to-Image with ControlNet (3 units), ADetailer (2 models), Regional Prompter (unlimited masks), Dynamic Prompts, and full SD WebUI Reforge features"
 
 base_settings:
   checkpoint: "sd_animagineXL40_v4Opt"
@@ -111,8 +111,8 @@ base_settings:
   clip_skip: 1
 
   # Hires Fix default settings (user can override)
-  hr_scale: 2.0
-  hr_upscaler: "R-ESRGAN 4x+ Anime6B"
+  hr_scale: 2
+  hr_upscaler: "4x_fatal_Anime_500000_G"
   hr_second_pass_steps: 0
   hr_resize_x: 0
   hr_resize_y: 0

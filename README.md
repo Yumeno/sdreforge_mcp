@@ -18,6 +18,11 @@ MCP (Model Context Protocol) server for SD WebUI Reforge integration with Claude
   - 動的パラメータ生成：max_models, max_units メタデータベース
   - 自動有効化ロジック：ControlNet, ADetailer の後方互換性
   - **16個のユーティリティツール**：PNG情報、アップスケール、背景除去等
+- **テンプレートベース初期化システム** - ユーザーカスタマイズ対応
+  - **環境変数ベース設定**：.envファイルでデフォルト値をカスタマイズ
+  - **自動プリセット生成**：テンプレート→実際のプリセット自動変換
+  - **クロスプラットフォーム対応**：Windows/Linux/macOS完全対応
+  - **インタラクティブセットアップ**：対話式設定とマイグレーション
 - **全拡張機能対応** - 10種類以上の拡張機能統合
   - **ControlNet**: 最大10ユニット、auto-enable機能
   - **ADetailer**: 最大15モデル、顔・手・人物検出
@@ -27,6 +32,7 @@ MCP (Model Context Protocol) server for SD WebUI Reforge integration with Claude
   - 単体テスト: 27個
   - 統合テスト: 実サーバー接続確認済み
   - **実績**: 152モデル、74サンプラーで動作確認
+  - **テンプレートシステム**: 全機能動作確認済み
 - **MCPサーバー** - MCP仕様準拠の完全実装
   - 動的ツール生成（プリセット→MCPツール自動変換）
   - リクエスト/レスポンスハンドリング
@@ -40,10 +46,21 @@ MCP (Model Context Protocol) server for SD WebUI Reforge integration with Claude
 - ⚡ **動的パラメータ生成** - max_models/max_units メタデータによる自動拡張
 - 🔄 **自動有効化** - 画像提供時のControlNet/ADetailer自動有効化
 - 📝 **YAMLベース設定** - 直感的なプリセット定義とカスタマイズ
+- 🎛️ **テンプレートベースカスタマイズ** - 環境変数でデフォルト設定を一元管理
+- 🌐 **クロスプラットフォーム** - Windows/Linux/macOS完全対応
 - 🚀 **リアルタイム生成** - プリセット→MCPツール動的変換
 - ✅ **本格運用対応** - 152モデル、74サンプラーで動作検証済み
 
 ## 🛠️ インストール
+
+### システム要件
+
+- **Node.js**: 16.0.0以上（推奨: 18.0.0以上）
+- **npm**: 8.0.0以上
+- **対応OS**: Windows 10+, macOS 10.15+, Ubuntu 18.04+
+- **SD WebUI Reforge**: APIモード対応版
+
+### セットアップ
 
 ```bash
 # リポジトリをクローン
@@ -573,21 +590,31 @@ sdreforge_mcp/
 │   ├── presets/            # プリセット管理 ✅
 │   │   ├── manager.ts      # プリセットマネージャー
 │   │   └── types.ts        # 318行の完全型定義
-│   └── server/             # MCPサーバー 🚧
+│   ├── setup/              # テンプレートシステム ✅
+│   │   ├── template-processor.ts  # テンプレート処理エンジン
+│   │   ├── setup-cli.ts    # セットアップCLI
+│   │   └── migrate-presets.ts     # マイグレーション
+│   └── server/             # MCPサーバー ✅
 ├── tests/                  # テストコード
 │   ├── unit/              # 単体テスト
 │   └── integration/       # 統合テスト
-├── presets/               # プリセットYAML
-│   ├── templates/         # テンプレート
-│   │   ├── FULL_TEMPLATE_txt2img.yaml
-│   │   ├── FULL_TEMPLATE_img2img.yaml
-│   │   └── UTILITY_TEMPLATES.yaml
-│   └── *.yaml            # カスタムプリセット
+├── preset-templates/      # プリセットテンプレート ✅
+│   ├── 01_txt2img_dynamic.yaml.template
+│   ├── 02_img2img_dynamic.yaml.template
+│   ├── 03_extras_upscale_dynamic.yaml.template
+│   ├── 04_extras_rembg_dynamic.yaml.template
+│   ├── 06_tagger_dynamic.yaml.template
+│   └── 08_utility_check_model.yaml.template
+├── presets/               # 生成されたプリセット
+│   ├── deprecated/        # 非推奨プリセット保管
+│   ├── templates/         # 手動テンプレート
+│   └── *.yaml            # アクティブプリセット
 ├── output/                # 生成画像出力
-└── docs/                  # ドキュメント
-    ├── SD_WEBUI_REFORGE_API_SCHEMA.md
-    ├── PRESET_TEMPLATES_GUIDE.md
-    └── issues/            # 開発イシュー
+└── docs/                  # ドキュメント ✅
+    ├── PRESET_YAML_REFERENCE.md     # 完全仕様書
+    ├── TOOL_REGISTRATION_GUIDE.md   # ツール登録ガイド
+    ├── DEVELOPER_GUIDE.md           # 開発者ガイド
+    └── PRESET_TEMPLATES_GUIDE.md    # テンプレートガイド
 ```
 
 ## 🔍 トラブルシューティング
@@ -633,6 +660,15 @@ cat .env.local
 - ✅ **静的パラメータ** → **動的パラメータ生成**システム
 - ✅ **手動設定** → **自動有効化ロジック**
 - ✅ **基本機能** → **全拡張機能統合**
+- ✅ **固定設定** → **テンプレートベース初期化**システム (Issue #4)
+- ✅ **単一OS** → **クロスプラットフォーム対応**
+
+### 完了した主要機能
+- ✅ **Issue #4**: テンプレートベース初期化システム
+  - 環境変数による設定カスタマイズ
+  - 自動プリセット生成
+  - インタラクティブセットアップ
+  - マイグレーション機能
 
 ### 今後の展開
 - [ ] **Phase 4**: X/Y/Z プロット機能
@@ -646,6 +682,186 @@ MIT
 ## 🤝 貢献
 
 Issues、Pull Requestsは歓迎します。開発はTDDで行っているため、新機能追加時はテストも含めてください。
+
+## 🎛️ テンプレートベース初期化システム (Issue #4)
+
+### 概要
+
+ユーザー固有のデフォルト設定を簡単に適用できるテンプレートベースのプリセット初期化システムです。
+
+### セットアップ手順
+
+#### 1. 設定ファイルの準備
+
+```bash
+# サンプル環境ファイルの生成
+npm run setup:presets:sample
+```
+
+**設定ファイルのコピー:**
+```bash
+# Linux/macOS
+cp .env.sample .env
+
+# Windows (Command Prompt)
+copy .env.sample .env
+
+# Windows (PowerShell)
+Copy-Item .env.sample .env
+```
+
+#### 2. 設定のカスタマイズ
+
+`.env` ファイルでお好みの設定を指定：
+
+```env
+# モデル・基本設定
+DEFAULT_CHECKPOINT=sd_animagineXL40_v4Opt
+DEFAULT_SAMPLER=Euler a
+DEFAULT_STEPS=28
+DEFAULT_CFG_SCALE=5
+
+# 画像サイズ
+DEFAULT_WIDTH=1024
+DEFAULT_HEIGHT=1024
+
+# プロンプトテンプレート
+POSITIVE_SUFFIX=masterpiece, high score, great score, absurdres
+NEGATIVE_BASE=lowres, bad anatomy, bad hands, text, error, missing finger, extra digits, fewer digits, cropped, worst quality, low quality, low score, bad score, average score, signature, watermark, username, blurry
+
+# 拡張機能設定
+CONTROLNET_MAX_UNITS=3
+ADETAILER_MAX_MODELS=2
+UPSCALER_DEFAULT_MODEL=4x-UltraSharp
+```
+
+#### 3. プリセット生成
+
+```bash
+# 自動セットアップ
+npm run setup:presets
+
+# インタラクティブセットアップ（推奨）
+npm run setup:presets:interactive
+
+# 設定検証のみ
+npm run setup:presets:validate
+```
+
+#### 4. ビルド・起動
+
+```bash
+npm run build
+# Claude Code を再起動して新しいプリセットを読み込み
+```
+
+### 利用可能なコマンド
+
+```bash
+# セットアップ関連
+npm run setup:presets                 # 自動セットアップ
+npm run setup:presets:interactive     # インタラクティブモード
+npm run setup:presets:validate        # 設定検証
+npm run setup:presets:sample          # サンプル.env生成
+
+# マイグレーション関連
+npm run migrate:presets               # 既存プリセットの整理
+npm run migrate:presets:dry-run       # 変更内容のプレビュー
+npm run migrate:presets:report        # マイグレーション分析レポート
+```
+
+### テンプレート変数一覧
+
+| カテゴリ | 変数名 | デフォルト値 | 説明 |
+|---------|-------|-------------|------|
+| **モデル設定** | `DEFAULT_CHECKPOINT` | `sd_animagineXL40_v4Opt` | デフォルトモデル |
+| | `DEFAULT_SAMPLER` | `Euler a` | デフォルトサンプラー |
+| | `DEFAULT_SCHEDULER` | `Automatic` | デフォルトスケジューラー |
+| **生成設定** | `DEFAULT_STEPS` | `28` | 生成ステップ数 |
+| | `DEFAULT_CFG_SCALE` | `5` | CFGスケール |
+| | `DEFAULT_CLIP_SKIP` | `1` | CLIPスキップ |
+| **画像サイズ** | `DEFAULT_WIDTH` | `1024` | デフォルト幅 |
+| | `DEFAULT_HEIGHT` | `1024` | デフォルト高さ |
+| **ControlNet** | `CONTROLNET_MAX_UNITS` | `3` | 最大ユニット数 |
+| **ADetailer** | `ADETAILER_MAX_MODELS` | `2` | 最大モデル数 |
+| **アップスケール** | `UPSCALER_DEFAULT_MODEL` | `4x-UltraSharp` | デフォルトアップスケーラー |
+| | `UPSCALER_DEFAULT_SCALE` | `2` | デフォルトスケール倍率 |
+
+### プリセットマイグレーション
+
+既存の個別プリセットを整理し、動的プリセットに統合：
+
+```bash
+# マイグレーション分析
+npm run migrate:presets:report
+
+# プレビュー実行
+npm run migrate:presets:dry-run
+
+# 実際のマイグレーション
+npm run migrate:presets
+```
+
+**マイグレーション処理内容:**
+- 非推奨プリセット → `presets/deprecated/` に移動
+- 動的プリセット、ユーティリティプリセット → そのまま保持
+- 自動バックアップ作成 (`presets-backup-YYYY-MM-DD`)
+
+### カスタマイズ例
+
+#### アニメ特化設定
+```env
+DEFAULT_CHECKPOINT=animagineXL40_v40
+DEFAULT_SAMPLER=DPM++ 2M Karras
+DEFAULT_STEPS=20
+DEFAULT_CFG_SCALE=7
+POSITIVE_SUFFIX=masterpiece, best quality, anime style
+UPSCALER_DEFAULT_MODEL=R-ESRGAN 4x+ Anime6B
+```
+
+#### 写実特化設定
+```env
+DEFAULT_CHECKPOINT=realismEngineSDXL_v30VAE
+DEFAULT_SAMPLER=DPM++ SDE Karras
+DEFAULT_STEPS=30
+DEFAULT_CFG_SCALE=6
+POSITIVE_SUFFIX=photorealistic, highly detailed, 8k resolution
+UPSCALER_DEFAULT_MODEL=4x-UltraSharp
+```
+
+#### 高性能環境設定
+```env
+CONTROLNET_MAX_UNITS=10
+ADETAILER_MAX_MODELS=15
+DEFAULT_WIDTH=1536
+DEFAULT_HEIGHT=1536
+UPSCALER_DEFAULT_SCALE=4
+```
+
+### トラブルシューティング
+
+**設定検証失敗:**
+```bash
+# 不足している変数を確認
+npm run setup:presets:validate
+
+# サンプルファイルを再生成
+npm run setup:presets:sample
+```
+
+**テンプレート処理エラー:**
+- `.env` ファイルの構文を確認
+- 数値項目は数値で指定（クォート不要）
+- ブール値は `true`/`false` で指定
+
+**プリセット競合:**
+```bash
+# 強制上書き
+npm run setup:presets -- --force
+
+# インタラクティブ選択
+npm run setup:presets:interactive
+```
 
 ## 📚 参考資料
 
