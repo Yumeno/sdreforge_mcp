@@ -10,7 +10,7 @@ export interface Preset {
   description?: string;
   type: 'txt2img' | 'img2img' | 'png-info' | 'extras' | 'extras-single-image' | 'extras-batch-images' |
         'interrogate' | 'progress' | 'options-get' | 'options-set' | 'models' |
-        'refresh' | 'samplers' | 'unload-checkpoint' | 'rembg' | 'tagger' | 'utility';
+        'refresh' | 'samplers' | 'unload-checkpoint' | 'rembg' | 'tagger' | 'utility' | 'extras_combined';
   base_settings?: BaseSettings;
   settings?: Record<string, any>;  // For utility presets
   extensions?: Extensions;
@@ -115,6 +115,7 @@ export interface Extensions {
  */
 export interface ADetailerConfig {
   enabled: boolean;
+  max_models?: number;
   models?: ADetailerModel[];
 }
 
@@ -158,6 +159,7 @@ export interface ADetailerModel {
  */
 export interface ControlNetConfig {
   enabled: boolean;
+  max_units?: number;
   units?: ControlNetUnit[];
 }
 

@@ -1,7 +1,7 @@
 # Dynamic Tagger - Model Selection Available
 name: tagger_dynamic
 type: tagger
-description: "Automatic image tagging with dynamic model selection"
+description: "Auto-generate image tags/prompts using WD14, BLIP or other tagger models"
 
 settings:
   # Dynamic model selection - user can override

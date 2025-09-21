@@ -37,7 +37,7 @@ export class ToolGenerator {
    */
   private presetToTool(preset: Preset): MCPTool | null {
     // Include all preset types
-    const supportedTypes = ['txt2img', 'img2img', 'extras', 'extras-single-image', 'rembg', 'png-info', 'tagger', 'utility'];
+    const supportedTypes = ['txt2img', 'img2img', 'extras', 'extras_combined', 'extras-single-image', 'rembg', 'png-info', 'tagger', 'utility'];
     if (!supportedTypes.includes(preset.type)) {
       return null;
     }
@@ -54,6 +54,7 @@ export class ToolGenerator {
         required = ['prompt', 'init_image'];
         break;
       case 'extras':
+      case 'extras_combined':
       case 'png-info':
       case 'tagger':
         required = ['image'];
@@ -87,7 +88,7 @@ export class ToolGenerator {
     const presetName = preset.name;
 
     // Skip prompt for non-generation tools
-    const noPromptTypes = ['utility', 'extras', 'png-info', 'tagger', 'extras-single-image', 'rembg'];
+    const noPromptTypes = ['utility', 'extras', 'extras_combined', 'png-info', 'tagger', 'extras-single-image', 'rembg'];
     if (!noPromptTypes.includes(preset.type)) {
       // Common parameters for generation tools
       schema.prompt = {
@@ -104,7 +105,7 @@ export class ToolGenerator {
     }
 
     // For image processing tools
-    const imageProcessingTypes = ['extras', 'extras-single-image', 'png-info', 'tagger', 'rembg'];
+    const imageProcessingTypes = ['extras', 'extras_combined', 'extras-single-image', 'png-info', 'tagger', 'rembg'];
     if (imageProcessingTypes.includes(preset.type)) {
       schema.image = {
         type: 'string',
@@ -123,90 +124,72 @@ export class ToolGenerator {
     // For ControlNet-enabled presets
     if (preset.extensions?.controlnet?.enabled) {
       // Special handling for fully parameterized preset (26)
-      if (preset.name === 'txt2img_cn_multi_3units' || preset.name === 'img2img_cn_multi_3units') {
-        // Fully parameterized ControlNet support
-        schema.controlnet_image = {
-          type: 'string',
-          description: 'Image file path for ControlNet Unit 0 reference'
-        };
-        schema.controlnet_image_2 = {
-          type: 'string',
-          description: 'Image file path for ControlNet Unit 1 reference (optional)'
-        };
-        schema.controlnet_image_3 = {
-          type: 'string',
-          description: 'Image file path for ControlNet Unit 2 reference (optional)'
-        };
+      if (preset.name === 'txt2img_dynamic' || preset.name === 'img2img_dynamic') {
+        // Dynamic ControlNet support based on max_units
+        const maxControlnetUnits = preset.extensions?.controlnet?.max_units || 3;
 
+        // Generate image parameters
+        for (let i = 1; i <= maxControlnetUnits; i++) {
+          const paramName = i === 1 ? 'controlnet_image' : `controlnet_image_${i}`;
+          const unitIndex = i - 1; // Unit 0, 1, 2...
+          schema[paramName] = {
+            type: 'string',
+            description: `Image file path for ControlNet Unit ${unitIndex} reference${i === 1 ? '' : ' (optional)'}`
+          };
+        }
 
-        // ControlNet model parameters
-        schema.controlnet_model_1 = {
-          type: 'string',
-          description: 'ControlNet model for Unit 0 (e.g., "CN-anytest3_animagine4_A")',
-          default: 'CN-anytest3_animagine4_A'
-        };
-        schema.controlnet_model_2 = {
-          type: 'string',
-          description: 'ControlNet model for Unit 1 (optional)'
-        };
-        schema.controlnet_model_3 = {
-          type: 'string',
-          description: 'ControlNet model for Unit 2 (optional)'
-        };
+        // Generate enable parameters
+        for (let i = 1; i <= maxControlnetUnits; i++) {
+          const unitIndex = i - 1; // Unit 0, 1, 2...
+          schema[`controlnet_enable_${i}`] = {
+            type: 'boolean',
+            description: `Enable ControlNet Unit ${unitIndex} (defaults to auto-enable when image provided)`,
+            default: false
+          };
+        }
 
-        // ControlNet module parameters
-        schema.controlnet_module_1 = {
-          type: 'string',
-          description: 'ControlNet preprocessor for Unit 0 (e.g., "None", "canny", "openpose")',
-          default: 'None'
-        };
-        schema.controlnet_module_2 = {
-          type: 'string',
-          description: 'ControlNet preprocessor for Unit 1 (optional)',
-          default: 'None'
-        };
-        schema.controlnet_module_3 = {
-          type: 'string',
-          description: 'ControlNet preprocessor for Unit 2 (optional)',
-          default: 'None'
-        };
+        // Generate model parameters
+        for (let i = 1; i <= maxControlnetUnits; i++) {
+          const unitIndex = i - 1; // Unit 0, 1, 2...
+          schema[`controlnet_model_${i}`] = {
+            type: 'string',
+            description: `ControlNet model for Unit ${unitIndex}${i === 1 ? ' (e.g., "CN-anytest3_animagine4_A")' : ' (optional)'}`,
+            ...(i === 1 ? { default: 'CN-anytest3_animagine4_A' } : {})
+          };
+        }
 
-        // ControlNet weight parameters
-        schema.controlnet_weight_1 = {
-          type: 'number',
-          description: 'ControlNet weight for Unit 0 (0.0-2.0)',
-          default: 1.0,
-          minimum: 0.0,
-          maximum: 2.0
-        };
-        schema.controlnet_weight_2 = {
-          type: 'number',
-          description: 'ControlNet weight for Unit 1 (0.0-2.0)',
-          default: 0.8,
-          minimum: 0.0,
-          maximum: 2.0
-        };
-        schema.controlnet_weight_3 = {
-          type: 'number',
-          description: 'ControlNet weight for Unit 2 (0.0-2.0)',
-          default: 0.6,
-          minimum: 0.0,
-          maximum: 2.0
-        };
+        // Generate module parameters
+        for (let i = 1; i <= maxControlnetUnits; i++) {
+          const unitIndex = i - 1; // Unit 0, 1, 2...
+          schema[`controlnet_module_${i}`] = {
+            type: 'string',
+            description: `ControlNet preprocessor for Unit ${unitIndex}${i === 1 ? ' (e.g., "None", "canny", "openpose")' : ' (optional)'}`,
+            default: 'None'
+          };
+        }
 
-        // ADetailer model parameters
-        schema.adetailer_model_2 = {
-          type: 'string',
-          description: 'ADetailer model 2 (e.g., "hand_yolov8n.pt") - enables Model 2'
-        };
-        schema.adetailer_model_3 = {
-          type: 'string',
-          description: 'ADetailer model 3 (e.g., "person_yolov8n-seg.pt") - enables Model 3'
-        };
-        schema.adetailer_model_4 = {
-          type: 'string',
-          description: 'ADetailer model 4 (e.g., "eye_yolov8n.pt") - enables Model 4'
-        };
+        // Generate weight parameters
+        for (let i = 1; i <= maxControlnetUnits; i++) {
+          const unitIndex = i - 1; // Unit 0, 1, 2...
+          const defaultWeight = i === 1 ? 1.0 : (i === 2 ? 0.8 : 0.6);
+          schema[`controlnet_weight_${i}`] = {
+            type: 'number',
+            description: `ControlNet weight for Unit ${unitIndex} (0.0-2.0)`,
+            default: defaultWeight,
+            minimum: 0.0,
+            maximum: 2.0
+          };
+        }
+
+        // ADetailer model parameters (all models based on max_models)
+        const maxAdetailerModels = preset.extensions?.adetailer?.max_models || 2;
+        for (let i = 1; i <= maxAdetailerModels; i++) {
+          schema[`adetailer_model_${i}`] = {
+            type: 'string',
+            description: `ADetailer model ${i} (e.g., ${i === 1 ? '"face_yolov8n.pt"' : '"hand_yolov8n.pt", "person_yolov8n-seg.pt", "eye_yolov8n.pt"'}) - enables Model ${i}`,
+            ...(i === 1 ? { default: 'face_yolov8n.pt' } : {})
+          };
+        }
 
         // Hires Fix parameters
         schema.enable_hr = {
@@ -244,17 +227,15 @@ export class ToolGenerator {
         // Batch generation parameters
         schema.batch_size = {
           type: 'number',
-          description: 'Number of images to generate in parallel (1-8)',
+          description: 'Number of images to generate in parallel (limited by VRAM)',
           default: 1,
-          minimum: 1,
-          maximum: 8
+          minimum: 1
         };
         schema.n_iter = {
           type: 'number',
-          description: 'Number of batch iterations (batch count) (1-100)',
+          description: 'Number of batch iterations (batch count) (limited by time/storage)',
           default: 1,
-          minimum: 1,
-          maximum: 100
+          minimum: 1
         };
 
         // Dynamic Prompts parameters
@@ -277,8 +258,7 @@ export class ToolGenerator {
           type: 'number',
           description: 'Maximum number of prompt variations (0 = unlimited)',
           default: 0,
-          minimum: 0,
-          maximum: 100
+          minimum: 0
         };
         schema.use_fixed_seed = {
           type: 'boolean',
@@ -294,9 +274,9 @@ export class ToolGenerator {
         };
         schema.rp_mode = {
           type: 'string',
-          description: 'Regional Prompter mode: Only "Matrix" (grid) is supported via API. Mask and Prompt modes are not supported.',
+          description: 'Regional Prompter mode: "Matrix" (grid) or "Mask" (masked regions)',
           default: 'Matrix',
-          enum: ['Matrix']  // Only allow Matrix mode
+          enum: ['Matrix', 'Mask']
         };
         schema.rp_matrix_submode = {
           type: 'string',
@@ -314,45 +294,109 @@ export class ToolGenerator {
           default: 'Attention'
         };
 
-        // Mask Mode parameters (Note: These are not functional via API - Mask mode is not supported)
+        // Mask Mode parameters (unlimited masks supported: rp_mask_1, rp_mask_2, rp_mask_3, ...)
+        // Note: These are dynamically detected - you can use rp_mask_1, rp_mask_2, rp_mask_3, etc. as needed
         schema.rp_mask_1 = {
           type: 'string',
-          description: 'NOT SUPPORTED VIA API - Mask mode is not functional through API calls'
+          description: 'Mask image file path for region 1 (white=region area, black=ignore)'
         };
         schema.rp_mask_2 = {
           type: 'string',
-          description: 'NOT SUPPORTED VIA API - Mask mode is not functional through API calls'
+          description: 'Mask image file path for region 2 (optional)'
         };
         schema.rp_mask_3 = {
           type: 'string',
-          description: 'NOT SUPPORTED VIA API - Mask mode is not functional through API calls'
+          description: 'Mask image file path for region 3 (optional)'
         };
-        schema.rp_prompt_1 = {
+        schema.rp_base_ratio = {
           type: 'string',
-          description: 'NOT SUPPORTED VIA API - Mask/Prompt mode is not functional through API calls'
-        };
-        schema.rp_prompt_2 = {
-          type: 'string',
-          description: 'NOT SUPPORTED VIA API - Mask/Prompt mode is not functional through API calls'
-        };
-        schema.rp_prompt_3 = {
-          type: 'string',
-          description: 'NOT SUPPORTED VIA API - Mask/Prompt mode is not functional through API calls'
+          description: 'Base ratio for mask mode (e.g., "0.2") - controls base influence',
+          default: '0.2'
         };
 
-        // Negative prompt parameters
-        schema.rp_use_neg_common = {
+        // Additional Regional Prompter parameters
+        schema.rp_debug = {
+          type: 'boolean',
+          description: 'Enable debug mode for Regional Prompter',
+          default: false
+        };
+        schema.rp_mask_submode = {
+          type: 'string',
+          description: 'Mask submode for Regional Prompter',
+          default: 'Mask'
+        };
+        schema.rp_prompt_submode = {
+          type: 'string',
+          description: 'Prompt submode for Regional Prompter',
+          default: 'Prompt'
+        };
+        schema.rp_use_base = {
+          type: 'boolean',
+          description: 'Use base prompt for all regions',
+          default: true
+        };
+        schema.rp_use_common = {
+          type: 'boolean',
+          description: 'Use common prompt for all regions',
+          default: false
+        };
+        schema.rp_use_ncommon = {
           type: 'boolean',
           description: 'Use common negative prompt for all regions',
           default: false
         };
-        schema.negative_prompt = {
+        schema.rp_not_change_and = {
+          type: 'boolean',
+          description: 'Do not change AND keywords in Regional Prompter',
+          default: false
+        };
+        schema.rp_lora_stop_step = {
           type: 'string',
-          description: 'User negative prompt (supports Regional Prompter syntax)'
+          description: 'LoRA stop step for Regional Prompter (e.g., "0")',
+          default: '0'
+        };
+        schema.rp_lora_hires_stop_step = {
+          type: 'string',
+          description: 'LoRA hires stop step for Regional Prompter (e.g., "0")',
+          default: '0'
+        };
+        schema.rp_threshold = {
+          type: 'string',
+          description: 'Regional Prompter threshold (e.g., "0.4")',
+          default: '0.4'
+        };
+        // Prompt template overrides
+        schema.prompt_prefix = {
+          type: 'string',
+          description: 'Prefix to add before the prompt',
+          default: preset.prompt_template?.positive_prefix || ''
+        };
+        schema.prompt_suffix = {
+          type: 'string',
+          description: 'Suffix to add after the prompt',
+          default: preset.prompt_template?.positive_suffix || 'masterpiece, high score, great score, absurdres'
+        };
+
+        // Negative prompt controls
+        schema.negative_prompt_base = {
+          type: 'string',
+          description: 'Base negative prompt (auto-appended)',
+          default: preset.prompt_template?.negative || 'lowres, bad anatomy, bad hands, text, error, missing finger, extra digits, fewer digits, cropped, worst quality, low quality, low score, bad score, average score, signature, watermark, username, blurry'
+        };
+        schema.negative_prompt_user = {
+          type: 'string',
+          description: 'Additional user negative prompt (supports Regional Prompter syntax)'
+        };
+
+        // Model checkpoint override
+        schema.checkpoint = {
+          type: 'string',
+          description: 'Model checkpoint to use (e.g., "sd_animagineXL40_v4Opt")',
+          default: preset.base_settings?.checkpoint || 'sd_animagineXL40_v4Opt'
         };
 
         // img2img upscaler and inpaint support
-        if (preset.name === 'img2img_cn_multi_3units') {
+        if (preset.name === 'img2img_dynamic') {
           schema.upscaler_model = {
             type: 'string',
             description: 'Upscaler model to use for img2img (e.g., "4x-UltraSharp", "R-ESRGAN 4x+ Anime6B")',
@@ -471,7 +515,7 @@ export class ToolGenerator {
       };
 
       // Add upscaler model selection for preset 27
-      if (presetName === 'img2img_cn_multi_3units') {
+      if (presetName === 'img2img_dynamic') {
         schema.upscaler_model = {
           type: 'string',
           description: 'Upscaler model to use for img2img (e.g., "4x-UltraSharp", "R-ESRGAN 4x+ Anime6B")',
