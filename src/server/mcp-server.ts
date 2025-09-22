@@ -1136,6 +1136,92 @@ export class MCPServer {
                 message: `Found ${models.length} RemBG models (hardcoded from extension)`
               }
             };
+          } else if (preset.settings?.action === 'png_info') {
+            // PNG Info extraction
+            const imagePath = params.image;
+            if (!imagePath) {
+              return {
+                success: false,
+                error: 'Image path is required for png_info action'
+              };
+            }
+
+            try {
+              // Read image file and convert to base64 if it's a file path
+              let imageData = imagePath;
+              if (!imagePath.startsWith('data:') && !imagePath.match(/^[A-Za-z0-9+/]+=*$/)) {
+                const resolvedPath = path.resolve(imagePath);
+                if (fs.existsSync(resolvedPath)) {
+                  const buffer = fs.readFileSync(resolvedPath);
+                  imageData = `data:image/png;base64,${buffer.toString('base64')}`;
+                } else {
+                  return {
+                    success: false,
+                    error: `Image file not found: ${imagePath}`
+                  };
+                }
+              }
+
+              // Extract PNG metadata using Jimp
+              const image = await Jimp.read(imagePath);
+              const metadata: Record<string, any> = {
+                format: 'PNG',
+                width: image.width,
+                height: image.height,
+                mode: image.hasAlpha() ? 'RGBA' : 'RGB'
+              };
+
+              // Extract text chunks (generation parameters)
+              if (image.bitmap && (image as any).bitmap.data) {
+                // Try to extract PNG text chunks using png-chunks-extract
+                try {
+                  const pngChunks = require('png-chunks-extract');
+                  const pngChunkText = require('png-chunk-text');
+
+                  const buffer = fs.readFileSync(path.resolve(imagePath));
+                  const chunks = pngChunks(buffer);
+                  const textChunks = chunks.filter((chunk: any) => chunk.name === 'tEXt');
+
+                  const parameters: Record<string, string> = {};
+                  for (const chunk of textChunks) {
+                    const text = pngChunkText.decode(chunk.data);
+                    parameters[text.keyword] = text.text;
+                  }
+
+                  if (Object.keys(parameters).length > 0) {
+                    metadata.text_metadata = parameters;
+
+                    // Extract main generation parameters if available
+                    if (parameters.parameters) {
+                      metadata.generation_parameters = parameters.parameters;
+                    }
+                    if (parameters.Parameters) {
+                      metadata.generation_parameters = parameters.Parameters;
+                    }
+                  }
+                } catch (chunkError) {
+                  console.warn('Failed to extract PNG chunks:', chunkError);
+                }
+              }
+
+              return {
+                success: true,
+                data: {
+                  metadata: metadata,
+                  image_info: {
+                    path: imagePath,
+                    size: `${image.width}x${image.height}`,
+                    format: 'PNG'
+                  },
+                  message: `PNG info extracted successfully`
+                }
+              };
+            } catch (error: any) {
+              return {
+                success: false,
+                error: `Failed to extract PNG info: ${error.message}`
+              };
+            }
           } else {
             return {
               success: false,

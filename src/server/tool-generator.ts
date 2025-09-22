@@ -121,6 +121,14 @@ export class ToolGenerator {
       };
     }
 
+    // For PNG Info utility tool
+    if (preset.type === 'utility' && preset.settings?.action === 'png_info') {
+      schema.image = {
+        type: 'string',
+        description: 'Image file path or base64 encoded image'
+      };
+    }
+
     // For ControlNet-enabled presets
     if (preset.extensions?.controlnet?.enabled) {
       // Special handling for fully parameterized preset (26)
