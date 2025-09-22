@@ -8,7 +8,7 @@ settings:
   # rembg_model: "none"          # Set to "none" to skip RemBG (COMMENTED OUT = use "none" override)
 
   # Upscale settings - DEFAULT ENABLED
-  upscaler_1: "4x-UltraSharp"   # Primary upscaler - Override to "none" to skip
+  upscaler_1: "R-ESRGAN 4x+ Anime6B"   # Primary upscaler - Override to "none" to skip
   upscaling_resize: 2           # Scale factor (1-8) - Reduced from 4 to 2 for performance
 
   # Optional secondary upscaler for mixing

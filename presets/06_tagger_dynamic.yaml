@@ -5,7 +5,7 @@ description: "Auto-generate image tags/prompts using WD14, BLIP or other tagger 
 
 settings:
   # Dynamic model selection - user can override
-  model: "wd-EVA02-Large-v3"    # Options: see available models below
+  model: "WD14 moat tagger v2"    # Options: see available models below
 
   # Tagging parameters
   threshold: 0.35                # Confidence threshold (0-1)

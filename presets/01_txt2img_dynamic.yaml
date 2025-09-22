@@ -112,7 +112,7 @@ base_settings:
 
   # Hires Fix default settings (user can override)
   hr_scale: 2
-  hr_upscaler: "4x_fatal_Anime_500000_G"
+  hr_upscaler: "R-ESRGAN 4x+ Anime6B"
   hr_second_pass_steps: 0
   hr_resize_x: 0
   hr_resize_y: 0
