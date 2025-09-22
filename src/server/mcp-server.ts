@@ -1149,11 +1149,13 @@ export class MCPServer {
             try {
               // Read image file and convert to base64 if it's a file path
               let imageData = imagePath;
+              let fileBuffer: Buffer | null = null;
+
               if (!imagePath.startsWith('data:') && !imagePath.match(/^[A-Za-z0-9+/]+=*$/)) {
                 const resolvedPath = path.resolve(imagePath);
                 if (fs.existsSync(resolvedPath)) {
-                  const buffer = fs.readFileSync(resolvedPath);
-                  imageData = `data:image/png;base64,${buffer.toString('base64')}`;
+                  fileBuffer = fs.readFileSync(resolvedPath);
+                  imageData = `data:image/png;base64,${fileBuffer.toString('base64')}`;
                 } else {
                   return {
                     success: false,
@@ -1172,14 +1174,13 @@ export class MCPServer {
               };
 
               // Extract text chunks (generation parameters)
-              if (image.bitmap && (image as any).bitmap.data) {
+              if (fileBuffer) {
                 // Try to extract PNG text chunks using png-chunks-extract
                 try {
                   const pngChunks = require('png-chunks-extract');
                   const pngChunkText = require('png-chunk-text');
 
-                  const buffer = fs.readFileSync(path.resolve(imagePath));
-                  const chunks = pngChunks(buffer);
+                  const chunks = pngChunks(fileBuffer);
                   const textChunks = chunks.filter((chunk: any) => chunk.name === 'tEXt');
 
                   const parameters: Record<string, string> = {};

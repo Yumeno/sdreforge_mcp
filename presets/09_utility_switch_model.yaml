@@ -1,9 +1,7 @@
-# (08) utility switch_model
+# (09) Utility Switch Model
 name: utility_switch_model
 type: utility
 description: "Switch to specified model checkpoint"
 
 settings:
   action: "switch_model"
-  # Model name to switch to (can use short name like "animagineXL40_v4Opt")
-  model_name: "sd_animagineXL40_v4Opt"

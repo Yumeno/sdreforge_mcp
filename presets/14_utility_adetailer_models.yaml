@@ -1,9 +1,7 @@
-# (13) utility adetailer models list
+# (14) Utility ADetailer Models
 name: utility_adetailer_models
 type: utility
 description: "Get list of available ADetailer detection models"
 
 settings:
   action: "adetailer_models"
-  endpoint: "/adetailer/v1/ad_model"
-  method: "GET"
