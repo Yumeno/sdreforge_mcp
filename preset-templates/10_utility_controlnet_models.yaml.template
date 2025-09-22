@@ -1,0 +1,7 @@
+# (10) Utility ControlNet Models
+name: utility_controlnet_models
+type: utility
+description: "List available ControlNet models"
+
+settings:
+  action: "controlnet_models"

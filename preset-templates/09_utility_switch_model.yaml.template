@@ -1,0 +1,7 @@
+# (09) Utility Switch Model
+name: utility_switch_model
+type: utility
+description: "Switch to specified model checkpoint"
+
+settings:
+  action: "switch_model"

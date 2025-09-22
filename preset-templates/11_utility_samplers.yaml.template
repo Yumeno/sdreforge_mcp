@@ -1,0 +1,7 @@
+# (11) Utility Samplers
+name: utility_samplers
+type: utility
+description: "Get list of available samplers"
+
+settings:
+  action: "samplers"

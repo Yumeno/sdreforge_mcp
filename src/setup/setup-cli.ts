@@ -105,7 +105,10 @@ class SetupCLI {
       if (existingFiles.length > 0) {
         console.log('⚠️  Warning: Existing preset files found in presets/ directory:');
         existingFiles.forEach(file => console.log(`   - ${file}`));
-        console.log('\nUse --force to overwrite existing files or --interactive for selective processing.');
+        console.log('\nTo overwrite existing files, use one of:');
+        console.log('   npm run setup:presets:force');
+        console.log('   npm run setup:presets -- --force');
+        console.log('   npm run setup:presets:interactive (for selective processing)');
         return;
       }
     }

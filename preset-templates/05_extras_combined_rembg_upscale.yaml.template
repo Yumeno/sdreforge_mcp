@@ -1,0 +1,24 @@
+# (05) Extras Combined RemBG + Upscale
+name: extras_combined_rembg_upscale
+type: extras_combined
+description: "Combined background removal + upscaling - set either to 'none' to skip that operation"
+
+settings:
+  # RemBG settings
+  rembg_model: "u2net"  # u2net, isnet-anime, silueta
+  return_mask: false
+  alpha_matting: false
+  alpha_matting_foreground_threshold: 270
+  alpha_matting_background_threshold: 10
+  alpha_matting_erode_size: 10
+
+  # Upscaling settings
+  upscaling_resize: 2
+  upscaler_1: "R-ESRGAN 4x+ Anime6B"
+  upscaler_2: "None"
+  extras_upscaler_2_visibility: 0
+
+  # Common settings
+  gfpgan_visibility: 0
+  codeformer_visibility: 0
+  codeformer_weight: 0

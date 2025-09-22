@@ -1,0 +1,7 @@
+# (16) Utility RemBG Models
+name: utility_rembg_models
+type: utility
+description: "Get list of available RemBG models"
+
+settings:
+  action: "rembg_models"
