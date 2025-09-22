@@ -125,7 +125,7 @@ class SetupCLI {
       output: process.stdout
     });
 
-    const question = (prompt: string): Promise<string> => {
+    const _question = (prompt: string): Promise<string> => {
       return new Promise(resolve => rl.question(prompt, resolve));
     };
 
@@ -282,9 +282,9 @@ class SetupCLI {
 
   private async saveConfigurationToFile(config: Record<string, string>): Promise<void> {
     try {
-      const envContent = Object.entries(config)
+      const envContent = `${Object.entries(config)
         .map(([key, value]) => `${key}=${value}`)
-        .join('\n') + '\n';
+        .join('\n')  }\n`;
 
       await fs.promises.writeFile('.env', envContent, 'utf-8');
       console.log('✅ Configuration saved to .env file');

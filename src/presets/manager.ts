@@ -6,8 +6,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
-import { Preset, BaseSettings, Extensions } from './types';
-import { Txt2ImgPayload, Img2ImgPayload } from '../api/types';
+import { Preset, Extensions } from './types';
+// Payload types available for future use
+// import { Txt2ImgPayload, Img2ImgPayload } from '../api/types';
 import { PromptHandler } from './prompt-handler';
 
 export class PresetManager {
@@ -80,8 +81,8 @@ export class PresetManager {
           fs.appendFileSync(logPath2, `[ERROR ${new Date().toISOString()}] Failed to load preset ${file}: ${error.message}\n`);
         }
       }
-    } catch (error) {
-      console.error('Failed to read presets directory:', error);
+    } catch {
+      // Failed to read presets directory
     }
 
     return presets;
@@ -176,8 +177,8 @@ export class PresetManager {
       let combinedNegativePrompt = '';
 
       // Use the effective template negative (which may be overridden by user)
-      const baseNegative = effectiveTemplate.negative || '';
-      const userNegative = userParams.negative_prompt_user || '';
+      const baseNegative = effectiveTemplate.negative ?? '';
+      const userNegative = userParams.negative_prompt_user ?? '';
 
       if (baseNegative && userNegative) {
         combinedNegativePrompt = `${baseNegative}, ${userNegative}`;
@@ -244,13 +245,13 @@ export class PresetManager {
       // Add each model as a minimal config object
       extensions.adetailer.models.forEach(model => {
         const modelConfig: any = {
-          ad_model: model.model || 'face_yolov8n.pt'
+          ad_model: model.model ?? 'face_yolov8n.pt'
         };
 
         // Only add optional parameters if explicitly defined
-        if (model.prompt) modelConfig.ad_prompt = model.prompt;
-        if (model.negative_prompt) modelConfig.ad_negative_prompt = model.negative_prompt;
-        if (model.confidence !== undefined) modelConfig.ad_confidence = model.confidence;
+        if (model.prompt) {modelConfig.ad_prompt = model.prompt;}
+        if (model.negative_prompt) {modelConfig.ad_negative_prompt = model.negative_prompt;}
+        if (model.confidence !== undefined) {modelConfig.ad_confidence = model.confidence;}
 
         adetailerArgs.push(modelConfig);
       });
@@ -259,8 +260,6 @@ export class PresetManager {
         args: adetailerArgs
       };
 
-      // Debug log
-      console.error('[DEBUG] ADetailer args structure:', JSON.stringify(adetailerArgs, null, 2));
     }
 
     // ControlNet
@@ -268,17 +267,17 @@ export class PresetManager {
       scripts.ControlNet = {
         args: extensions.controlnet.units.map(unit => ({
           enabled: unit.enabled !== false,
-          module: unit.module || 'none',
-          model: unit.model || '',
-          weight: unit.weight || 1.0,
-          resize_mode: unit.resize_mode || 1,
-          pixel_perfect: unit.pixel_perfect || false,
-          control_mode: unit.control_mode || 0,
-          threshold_a: unit.threshold_a || 64,
-          threshold_b: unit.threshold_b || 64,
-          guidance_start: unit.guidance_start || 0.0,
-          guidance_end: unit.guidance_end || 1.0,
-          processor_res: unit.processor_res || 512
+          module: unit.module ?? 'none',
+          model: unit.model ?? '',
+          weight: unit.weight ?? 1.0,
+          resize_mode: unit.resize_mode ?? 1,
+          pixel_perfect: unit.pixel_perfect ?? false,
+          control_mode: unit.control_mode ?? 0,
+          threshold_a: unit.threshold_a ?? 64,
+          threshold_b: unit.threshold_b ?? 64,
+          guidance_start: unit.guidance_start ?? 0.0,
+          guidance_end: unit.guidance_end ?? 1.0,
+          processor_res: unit.processor_res ?? 512
         }))
       };
     }
@@ -287,17 +286,17 @@ export class PresetManager {
     if (extensions.regional_prompter?.enabled) {
       scripts['Regional Prompter'] = {
         args: [{
-          mode: extensions.regional_prompter.mode || 'Matrix',
-          split_mode: extensions.regional_prompter.split_mode || 'Horizontal',
-          split_ratio: extensions.regional_prompter.split_ratio || '1,1',
-          base_prompt: extensions.regional_prompter.base_prompt || '',
-          common_prompt: extensions.regional_prompter.common_prompt || '',
-          lora_in_common: extensions.regional_prompter.lora_in_common || false,
-          lora_in_negative: extensions.regional_prompter.lora_in_negative || false,
-          disable_convert_and: extensions.regional_prompter.disable_convert_and || false,
-          use_base: extensions.regional_prompter.use_base || false,
-          use_common: extensions.regional_prompter.use_common || false,
-          use_negative_common: extensions.regional_prompter.use_negative_common || false
+          mode: extensions.regional_prompter.mode ?? 'Matrix',
+          split_mode: extensions.regional_prompter.split_mode ?? 'Horizontal',
+          split_ratio: extensions.regional_prompter.split_ratio ?? '1,1',
+          base_prompt: extensions.regional_prompter.base_prompt ?? '',
+          common_prompt: extensions.regional_prompter.common_prompt ?? '',
+          lora_in_common: extensions.regional_prompter.lora_in_common ?? false,
+          lora_in_negative: extensions.regional_prompter.lora_in_negative ?? false,
+          disable_convert_and: extensions.regional_prompter.disable_convert_and ?? false,
+          use_base: extensions.regional_prompter.use_base ?? false,
+          use_common: extensions.regional_prompter.use_common ?? false,
+          use_negative_common: extensions.regional_prompter.use_negative_common ?? false
         }]
       };
     }
@@ -306,10 +305,10 @@ export class PresetManager {
     if (extensions.dynamic_prompts?.enable_dynamic_prompts) {
       scripts['dynamic prompts v2.17.1'] = {
         args: [
-          extensions.dynamic_prompts.enable_dynamic_prompts || true,     // 1: enabled
-          extensions.dynamic_prompts.combinatorial_generation || false,  // 2: combinatorial
+          extensions.dynamic_prompts.enable_dynamic_prompts ?? true,     // 1: enabled
+          extensions.dynamic_prompts.combinatorial_generation ?? false,  // 2: combinatorial
           1,                                                            // 3: combinatorial_batches
-          extensions.dynamic_prompts.magic_prompt || false,             // 4: magic_prompt
+          extensions.dynamic_prompts.magic_prompt ?? false,             // 4: magic_prompt
           false,                                                        // 5: feeling_lucky
           false,                                                        // 6: attention_grabber
           1.1,                                                          // 7: min_attention
@@ -321,7 +320,7 @@ export class PresetManager {
           false,                                                        // 13: disable_negative_prompt
           false,                                                        // 14: enable_jinja_templates
           false,                                                        // 15: no_image_generation
-          extensions.dynamic_prompts.max_generations || 0,              // 16: max_generations
+          extensions.dynamic_prompts.max_generations ?? 0,              // 16: max_generations
           "magic_prompt",                                               // 17: magic_model
           ""                                                            // 18: magic_blocklist_regex
         ]
@@ -332,23 +331,22 @@ export class PresetManager {
     if (extensions.regional_prompter?.rp_active) {
       scripts['Regional Prompter'] = {
         args: [
-          extensions.regional_prompter.rp_active || false,             // 1: active
-          extensions.regional_prompter.rp_debug || false,             // 2: debug
-          extensions.regional_prompter.rp_mode || 'Matrix',           // 3: mode
-          extensions.regional_prompter.rp_matrix_submode || 'Columns', // 4: matrix_submode
-          extensions.regional_prompter.rp_mask_submode || 'Mask',     // 5: mask_submode
-          extensions.regional_prompter.rp_prompt_submode || 'Prompt', // 6: prompt_submode
-          extensions.regional_prompter.rp_divide_ratio || '1,1',      // 7: divide_ratio
-          extensions.regional_prompter.rp_base_ratio || '0.2',        // 8: base_ratio
-          extensions.regional_prompter.rp_use_base !== undefined ?
-            extensions.regional_prompter.rp_use_base : true,          // 9: use_base
-          extensions.regional_prompter.rp_use_common || false,        // 10: use_common
-          extensions.regional_prompter.rp_use_ncommon || false,       // 11: use_ncommon
-          extensions.regional_prompter.rp_calc_mode || 'Attention',   // 12: calc_mode
-          extensions.regional_prompter.rp_not_change_and || false,    // 13: not_change_and
-          extensions.regional_prompter.rp_lora_stop_step || '0',      // 14: lora_stop_step
-          extensions.regional_prompter.rp_lora_hires_stop_step || '0', // 15: lora_hires_stop_step
-          extensions.regional_prompter.rp_threshold || '0.4'          // 16: threshold
+          extensions.regional_prompter.rp_active ?? false,             // 1: active
+          extensions.regional_prompter.rp_debug ?? false,             // 2: debug
+          extensions.regional_prompter.rp_mode ?? 'Matrix',           // 3: mode
+          extensions.regional_prompter.rp_matrix_submode ?? 'Columns', // 4: matrix_submode
+          extensions.regional_prompter.rp_mask_submode ?? 'Mask',     // 5: mask_submode
+          extensions.regional_prompter.rp_prompt_submode ?? 'Prompt', // 6: prompt_submode
+          extensions.regional_prompter.rp_divide_ratio ?? '1,1',      // 7: divide_ratio
+          extensions.regional_prompter.rp_base_ratio ?? '0.2',        // 8: base_ratio
+          extensions.regional_prompter.rp_use_base ?? true,          // 9: use_base
+          extensions.regional_prompter.rp_use_common ?? false,        // 10: use_common
+          extensions.regional_prompter.rp_use_ncommon ?? false,       // 11: use_ncommon
+          extensions.regional_prompter.rp_calc_mode ?? 'Attention',   // 12: calc_mode
+          extensions.regional_prompter.rp_not_change_and ?? false,    // 13: not_change_and
+          extensions.regional_prompter.rp_lora_stop_step ?? '0',      // 14: lora_stop_step
+          extensions.regional_prompter.rp_lora_hires_stop_step ?? '0', // 15: lora_hires_stop_step
+          extensions.regional_prompter.rp_threshold ?? '0.4'          // 16: threshold
         ]
       };
     }
