@@ -783,7 +783,6 @@ export class MCPServer {
       switch (preset.type) {
         case 'txt2img':
           // Comprehensive payload logging before API call
-          const path = require('path');
           const payloadLogPath = path.join(process.cwd(), 'payload-debug.log');
           const timestamp = new Date().toISOString();
           fs.appendFileSync(payloadLogPath, `\n========== txt2img API Call at ${timestamp} ==========\n`);
@@ -840,7 +839,6 @@ export class MCPServer {
             // Read image file and convert to base64 if it's a file path
             let imageData = params.image;
             // Check if it's a file path (not base64 data)
-              const path = require('path');
             // If it looks like a path and not base64 data
             if (!params.image.startsWith('data:') && !params.image.match(/^[A-Za-z0-9+/]+=*$/)) {
               try {
@@ -870,7 +868,6 @@ export class MCPServer {
             let imageData = params.image;
             // Check if it's a file path (not base64 data)
             if (!params.image.startsWith('data:') && !params.image.match(/^[A-Za-z0-9+/]+=*$/)) {
-                  const path = require('path');
               try {
                 const resolvedPath = path.resolve(params.image);
                 if (fs.existsSync(resolvedPath)) {
@@ -1238,7 +1235,6 @@ export class MCPServer {
             let imageData = params.image;
             // Check if it's a file path (not base64 data)
             if (!params.image.startsWith('data:') && !params.image.match(/^[A-Za-z0-9+/]+=*$/)) {
-                  const path = require('path');
               try {
                 const resolvedPath = path.resolve(params.image);
                 if (fs.existsSync(resolvedPath)) {
@@ -1271,7 +1267,6 @@ export class MCPServer {
           // Read image file and convert to base64 if it's a file path
           let combinedImageData = params.image;
           if (!params.image.startsWith('data:') && !params.image.match(/^[A-Za-z0-9+/]+=*$/)) {
-            const path = require('path');
             try {
               const resolvedPath = path.resolve(params.image);
               if (fs.existsSync(resolvedPath)) {
