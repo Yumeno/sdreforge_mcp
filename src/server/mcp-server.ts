@@ -40,8 +40,8 @@ export class MCPServer {
     // Initialize MCP server
     this.server = new Server(
       {
-        name: this.config.serverName,
-        version: this.config.serverVersion
+        name: this.config.serverName!,
+        version: this.config.serverVersion!
       },
       {
         capabilities: {
