@@ -1429,11 +1429,20 @@ export class MCPServer {
           let savedFiles: string[];
 
           // Special handling for RemBG and Upscale to preserve PNG Info
-          if (extrasResponse.html_info && (preset.settings?.rembg_model || preset.settings?.upscaler_1)) {
+          if (extrasResponse.html_info && (preset.settings?.rembg_model || preset.settings?.upscaler_1 || params.rembg_model || params.upscaler_1)) {
             // Read original PNG Info before processing
             let originalPngInfo = null;
             try {
-              originalPngInfo = await this.apiClient.pngInfo(params.image);
+                // Convert file path to base64 if necessary
+              let imageDataForPngInfo = params.image;
+              if (!params.image.startsWith('data:') && !params.image.match(/^[A-Za-z0-9+/]+=*$/)) {
+                const resolvedPath = path.resolve(params.image);
+                if (fs.existsSync(resolvedPath)) {
+                  const buffer = fs.readFileSync(resolvedPath);
+                  imageDataForPngInfo = buffer.toString('base64');
+                }
+              }
+              originalPngInfo = await this.apiClient.pngInfo(imageDataForPngInfo);
             } catch {
               // Could not read original PNG Info
             }
@@ -1463,7 +1472,16 @@ export class MCPServer {
           // Read original PNG Info before processing
           let originalPngInfo = null;
           try {
-            originalPngInfo = await this.apiClient.pngInfo(params.image);
+            // Convert file path to base64 if necessary
+            let imageDataForPngInfo = params.image;
+            if (!params.image.startsWith('data:') && !params.image.match(/^[A-Za-z0-9+/]+=*$/)) {
+              const resolvedPath = path.resolve(params.image);
+              if (fs.existsSync(resolvedPath)) {
+                const buffer = fs.readFileSync(resolvedPath);
+                imageDataForPngInfo = buffer.toString('base64');
+              }
+            }
+            originalPngInfo = await this.apiClient.pngInfo(imageDataForPngInfo);
           } catch {
             // Could not read original PNG Info
           }
@@ -1576,60 +1594,15 @@ export class MCPServer {
           newPostprocessingInfo = postprocessingMatch[1];
         }
 
-        // Improved conditional logic for PNG Info assembly
+        // Official Reforge behavior: no history accumulation, only show latest processing
         let postprocessingInfo = '';
         let extrasInfo = '';
 
-        // Parse operation types from the info strings
-        const hasUpscaleInfo = (info: string) => /upscale|Postprocess upscaler/i.test(info);
-        const hasRemBGInfo = (info: string) => /rembg/i.test(info);
-
-        const existingUpscale = existingPostprocessing && hasUpscaleInfo(existingPostprocessing);
-        const existingRemBG = existingPostprocessing && hasRemBGInfo(existingPostprocessing);
-        const newUpscale = newPostprocessingInfo && hasUpscaleInfo(newPostprocessingInfo);
-        const newRemBG = newPostprocessingInfo && hasRemBGInfo(newPostprocessingInfo);
-
-        // Collect Upscale info (prioritize existing, then new)
-        let upscaleInfo = '';
-        if (existingUpscale) {
-          upscaleInfo = existingPostprocessing;
-        } else if (newUpscale) {
-          upscaleInfo = newPostprocessingInfo;
-        }
-
-        // Collect RemBG info (prioritize new, then existing)
-        let rembgInfo = '';
-        if (newRemBG) {
-          rembgInfo = newPostprocessingInfo;
-        } else if (existingRemBG) {
-          rembgInfo = existingPostprocessing;
-        }
-
-        // Apply the improved conditional assembly logic
-        if (upscaleInfo && rembgInfo) {
-          // Both operations: Upscale + separator + RemBG
-          postprocessingInfo = `${upscaleInfo}, ${rembgInfo}`;
-          extrasInfo = `${upscaleInfo}, ${rembgInfo}`;
-        } else if (upscaleInfo) {
-          // Upscale only
-          postprocessingInfo = upscaleInfo;
-          extrasInfo = upscaleInfo;
-        } else if (rembgInfo) {
-          // RemBG only (no separator)
-          postprocessingInfo = rembgInfo;
-          extrasInfo = rembgInfo;
-        } else {
-          // Fallback to simple combination if parsing fails
-          if (existingPostprocessing && newPostprocessingInfo) {
-            postprocessingInfo = `${existingPostprocessing}, ${newPostprocessingInfo}`;
-            extrasInfo = `${existingPostprocessing}, ${newPostprocessingInfo}`;
-          } else if (existingPostprocessing) {
-            postprocessingInfo = existingPostprocessing;
-            extrasInfo = existingPostprocessing;
-          } else if (newPostprocessingInfo) {
-            postprocessingInfo = newPostprocessingInfo;
-            extrasInfo = newPostprocessingInfo;
-          }
+        // Simply use the current processing info from htmlInfo
+        if (newPostprocessingInfo) {
+          // Use only the latest processing info (official Reforge behavior)
+          postprocessingInfo = newPostprocessingInfo;
+          extrasInfo = newPostprocessingInfo;
         }
 
         // Create 3 separate tEXt chunks in SD WebUI standard format
