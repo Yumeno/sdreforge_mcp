@@ -69,7 +69,7 @@ export class ToolGenerator {
 
     const tool: MCPTool = {
       name: toolName,
-      description: preset.description || `${preset.type} generation with ${preset.name}`,
+      description: preset.description ?? `${preset.type} generation with ${preset.name}`,
       inputSchema: {
         type: 'object',
         properties: this.generateInputSchema(preset),
@@ -121,12 +121,20 @@ export class ToolGenerator {
       };
     }
 
+    // For PNG Info utility tool
+    if (preset.type === 'utility' && preset.settings?.action === 'png_info') {
+      schema.image = {
+        type: 'string',
+        description: 'Image file path or base64 encoded image'
+      };
+    }
+
     // For ControlNet-enabled presets
     if (preset.extensions?.controlnet?.enabled) {
       // Special handling for fully parameterized preset (26)
       if (preset.name === 'txt2img_dynamic' || preset.name === 'img2img_dynamic') {
         // Dynamic ControlNet support based on max_units
-        const maxControlnetUnits = preset.extensions?.controlnet?.max_units || 3;
+        const maxControlnetUnits = preset.extensions?.controlnet?.max_units ?? 3;
 
         // Generate image parameters
         for (let i = 1; i <= maxControlnetUnits; i++) {
@@ -182,7 +190,7 @@ export class ToolGenerator {
         }
 
         // ADetailer model parameters (all models based on max_models)
-        const maxAdetailerModels = preset.extensions?.adetailer?.max_models || 2;
+        const maxAdetailerModels = preset.extensions?.adetailer?.max_models ?? 2;
         for (let i = 1; i <= maxAdetailerModels; i++) {
           schema[`adetailer_model_${i}`] = {
             type: 'string',
@@ -369,19 +377,19 @@ export class ToolGenerator {
         schema.prompt_prefix = {
           type: 'string',
           description: 'Prefix to add before the prompt',
-          default: preset.prompt_template?.positive_prefix || ''
+          default: preset.prompt_template?.positive_prefix ?? ''
         };
         schema.prompt_suffix = {
           type: 'string',
           description: 'Suffix to add after the prompt',
-          default: preset.prompt_template?.positive_suffix || 'masterpiece, high score, great score, absurdres'
+          default: preset.prompt_template?.positive_suffix ?? 'masterpiece, high score, great score, absurdres'
         };
 
         // Negative prompt controls
         schema.negative_prompt_base = {
           type: 'string',
           description: 'Base negative prompt (auto-appended)',
-          default: preset.prompt_template?.negative || 'lowres, bad anatomy, bad hands, text, error, missing finger, extra digits, fewer digits, cropped, worst quality, low quality, low score, bad score, average score, signature, watermark, username, blurry'
+          default: preset.prompt_template?.negative ?? 'lowres, bad anatomy, bad hands, text, error, missing finger, extra digits, fewer digits, cropped, worst quality, low quality, low score, bad score, average score, signature, watermark, username, blurry'
         };
         schema.negative_prompt_user = {
           type: 'string',
@@ -392,7 +400,7 @@ export class ToolGenerator {
         schema.checkpoint = {
           type: 'string',
           description: 'Model checkpoint to use (e.g., "sd_animagineXL40_v4Opt")',
-          default: preset.base_settings?.checkpoint || 'sd_animagineXL40_v4Opt'
+          default: preset.base_settings?.checkpoint ?? 'sd_animagineXL40_v4Opt'
         };
 
         // img2img upscaler and inpaint support
@@ -442,7 +450,7 @@ export class ToolGenerator {
         };
 
         // Add support for multiple ControlNet units
-        const units = preset.extensions.controlnet.units || [];
+        const units = preset.extensions.controlnet.units ?? [];
         if (units.length > 1) {
           schema.controlnet_image_2 = {
             type: 'string',
@@ -488,12 +496,12 @@ export class ToolGenerator {
       schema.width = {
         type: 'number',
         description: 'Image width',
-        default: preset.base_settings?.width || 1024
+        default: preset.base_settings?.width ?? 1024
       };
       schema.height = {
         type: 'number',
         description: 'Image height',
-        default: preset.base_settings?.height || 1024
+        default: preset.base_settings?.height ?? 1024
       };
     }
 
@@ -501,7 +509,7 @@ export class ToolGenerator {
     schema.batch_size = {
       type: 'number',
       description: 'Number of images to generate in parallel',
-      default: preset.base_settings?.batch_size || 1
+      default: preset.base_settings?.batch_size ?? 1
     };
 
     // img2img specific parameters
@@ -509,7 +517,7 @@ export class ToolGenerator {
       schema.denoising_strength = {
         type: 'number',
         description: 'Denoising strength (0.0-1.0)',
-        default: preset.base_settings?.denoising_strength || 0.75,
+        default: preset.base_settings?.denoising_strength ?? 0.75,
         minimum: 0,
         maximum: 1
       };

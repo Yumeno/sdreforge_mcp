@@ -16,7 +16,7 @@ class PresetMigrator {
 
   constructor(config: MigrationConfig = {}) {
     this.presetsDir = path.join(process.cwd(), 'presets');
-    this.backupDir = config.backupDir || path.join(process.cwd(), 'presets-backup');
+    this.backupDir = config.backupDir ?? path.join(process.cwd(), 'presets-backup');
   }
 
   /**
@@ -93,7 +93,7 @@ class PresetMigrator {
         const content = fs.readFileSync(filePath, 'utf-8');
         const preset = yaml.load(content) as any;
 
-        if (!preset || !preset.name || !preset.type) {
+        if (!preset?.name || !preset.type) {
           analysis.unknown.push(file);
           continue;
         }
@@ -134,7 +134,7 @@ class PresetMigrator {
 
     return deprecatedPatterns.some(pattern =>
       preset.name.includes(pattern) ||
-      (preset.description && preset.description.includes(pattern))
+      (preset.description?.includes(pattern))
     );
   }
 

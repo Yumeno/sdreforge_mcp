@@ -17,6 +17,7 @@
     "setup:presets:quick": "tsx src/setup/setup-cli.ts --generate-sample && tsx src/setup/setup-cli.ts",
     "setup:presets:validate": "tsx src/setup/setup-cli.ts --validate",
     "setup:presets:sample": "tsx src/setup/setup-cli.ts --generate-sample",
+    "setup:presets:force": "tsx src/setup/setup-cli.ts --force",
     "migrate:presets": "tsx src/setup/migrate-presets.ts",
     "migrate:presets:report": "tsx src/setup/migrate-presets.ts --report",
     "migrate:presets:dry-run": "tsx src/setup/migrate-presets.ts --dry-run"
@@ -41,6 +42,7 @@
   },
   "homepage": "https://github.com/Yumeno/sdreforge_mcp#readme",
   "dependencies": {
+    "@jimp/utils": "^1.6.0",
     "@modelcontextprotocol/sdk": "^1.18.0",
     "axios": "^1.12.1",
     "dotenv": "^17.2.2",
@@ -48,11 +50,9 @@
     "js-yaml": "^4.1.0",
     "png-chunks-extract": "^1.0.0",
     "png-chunks-encode": "^1.0.0",
-    "png-chunk-text": "^1.0.0",
-    "pngjs": "^7.0.0"
+    "png-chunk-text": "^1.0.0"
   },
   "devDependencies": {
-    "@types/jest": "^30.0.0",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.3.3",
     "@typescript-eslint/eslint-plugin": "^8.43.0",

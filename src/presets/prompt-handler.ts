@@ -94,7 +94,7 @@ export class PromptHandler {
     // Correct Regional Prompter algorithm per specification
 
     // (i) Split prompt by chunk delimiters
-    let chunkDelimiters = ['ADDCOMM', 'ADDBASE', 'ADDCOL', 'ADDROW', 'BREAK'];
+    const chunkDelimiters = ['ADDCOMM', 'ADDBASE', 'ADDCOL', 'ADDROW', 'BREAK'];
     // Add AND delimiter only when Not Change AND = false
     if (!rpConfig?.rp_not_change_and) {
       chunkDelimiters.push('AND');
@@ -124,7 +124,7 @@ export class PromptHandler {
           template.positive_prefix,
           firstChunk,
           template.positive_suffix
-        ].filter(p => p && p.trim()).join(', ');
+        ].filter(p => p?.trim()).join(', ');
 
         // Replace first chunk with wrapped version - use safer string replacement
         processedPrompt = processedPrompt.replace(firstChunk.trim(), wrappedFirstChunk);
@@ -167,7 +167,7 @@ export class PromptHandler {
               template.positive_prefix,
               trimmedChunk,
               template.positive_suffix
-            ].filter(p => p && p.trim()).join(', ');
+            ].filter(p => p?.trim()).join(', ');
 
             fs.appendFileSync(debugLogPath, `Wrapping chunk ${index + 1}: "${trimmedChunk}" -> "${wrappedChunk}"\n`);
             fs.appendFileSync(debugLogPath, `Before replacement: "${processedPrompt}"\n`);
@@ -185,7 +185,7 @@ export class PromptHandler {
         template.positive_prefix,
         processedPrompt,
         template.positive_suffix
-      ].filter(p => p && p.trim());
+      ].filter(p => p?.trim());
       processedPrompt = parts.join(', ');
     }
 
@@ -199,7 +199,7 @@ export class PromptHandler {
       if (!rpEnabled) {
         // Regional Prompter disabled or no definition - standard processing
         processedNegativePrompt = [template.negative, userNegativePrompt]
-          .filter(p => p && p.trim()).join(', ');
+          .filter(p => p?.trim()).join(', ');
       } else {
         // Regional Prompter enabled - follow 3-step specification
 
@@ -217,7 +217,7 @@ export class PromptHandler {
           if (negChunks.length === 1 || rpConfig?.rp_use_neg_common) {
             // Standard processing: preset negative + user negative
             processedNegativePrompt = [template.negative, userNegativePrompt]
-              .filter(p => p && p.trim()).join(', ');
+              .filter(p => p?.trim()).join(', ');
           } else {
             // (iii) Multiple chunks AND Use Neg-Common = false
             // Apply preset negative to each chunk
@@ -225,7 +225,7 @@ export class PromptHandler {
             negChunks.forEach(chunk => {
               const trimmedChunk = chunk.trim();
               const wrappedChunk = [template.negative, trimmedChunk]
-                .filter(p => p && p.trim()).join(', ');
+                .filter(p => p?.trim()).join(', ');
               result = result.replace(trimmedChunk, wrappedChunk);
             });
             processedNegativePrompt = result;
@@ -233,7 +233,7 @@ export class PromptHandler {
         } else {
           // No delimiters in negative prompt - standard processing
           processedNegativePrompt = [template.negative, userNegativePrompt]
-            .filter(p => p && p.trim()).join(', ');
+            .filter(p => p?.trim()).join(', ');
         }
       }
     }

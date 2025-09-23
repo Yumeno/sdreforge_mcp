@@ -1,9 +1,0 @@
-# (06) PNG Info utility
-name: utility_png_info
-type: png-info
-description: "Extract generation parameters from PNG metadata"
-
-settings:
-  # PNG Info specific settings
-  # This preset reads metadata from uploaded images
-  extract_metadata: true

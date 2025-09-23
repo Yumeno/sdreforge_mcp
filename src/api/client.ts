@@ -8,13 +8,10 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as fs from 'fs';
 import {
-  SDWebUIConfig,
-  APIError,
   ValidationError,
   Txt2ImgPayload,
   Img2ImgPayload,
   GenerationResponse,
-  PNGInfoPayload,
   PNGInfoResponse,
   ExtrasSingleImagePayload,
   ExtrasResponse,
@@ -38,7 +35,7 @@ export class SDWebUIClient {
 
   constructor(baseUrl?: string, timeout = 120000) {
     // Priority: constructor arg > env var > default
-    this.baseUrl = (baseUrl || process.env.SD_WEBUI_URL || 'http://localhost:7860').replace(/\/$/, '');
+    this.baseUrl = (baseUrl ?? process.env.SD_WEBUI_URL ?? 'http://localhost:7860').replace(/\/$/, '');
     this.timeout = timeout;
 
     this.client = axios.create({
@@ -63,7 +60,7 @@ export class SDWebUIClient {
     try {
       await this.client.get('/sd-models');
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -118,7 +115,7 @@ export class SDWebUIClient {
         throw new Error('Validation error: Invalid request parameters');
       }
 
-      throw new Error(`API error ${status}: ${data.detail || data.message || 'Unknown error'}`);
+      throw new Error(`API error ${status}: ${data.detail ?? data.message ?? 'Unknown error'}`);
     } else if (error.code === 'ECONNABORTED') {
       throw new Error(`Request timeout after ${this.timeout}ms`);
     } else if (error.code === 'ECONNREFUSED') {
@@ -294,7 +291,7 @@ export class SDWebUIClient {
       const directResponse = await axios.get(`${this.baseUrl}/controlnet/model_list`, {
         timeout: this.timeout
       });
-      return directResponse.data.model_list || directResponse.data;
+      return directResponse.data.model_list ?? directResponse.data;
     } catch (error) {
       return this.handleError(error as AxiosError);
     }

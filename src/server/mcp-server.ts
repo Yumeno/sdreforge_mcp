@@ -26,11 +26,11 @@ export class MCPServer {
 
   constructor(config: ServerConfig = {}) {
     this.config = {
-      presetsDir: config.presetsDir || path.join(__dirname, '../../presets'),
-      apiUrl: config.apiUrl || process.env.SD_WEBUI_URL,
-      serverName: config.serverName || 'sdreforge-mcp',
-      serverVersion: config.serverVersion || '0.1.0',
-      debug: config.debug || true  // Enable debug for troubleshooting
+      presetsDir: config.presetsDir ?? path.join(__dirname, '../../presets'),
+      apiUrl: config.apiUrl ?? process.env.SD_WEBUI_URL,
+      serverName: config.serverName ?? 'sdreforge-mcp',
+      serverVersion: config.serverVersion ?? '0.1.0',
+      debug: config.debug ?? false
     };
 
     // Initialize components
@@ -59,13 +59,8 @@ export class MCPServer {
   private setupHandlers(): void {
     // List tools handler with caching
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
-      console.log('[CONSOLE] ListTools request received');
       if (!this.cachedTools) {
-        console.log('[CONSOLE] Generating tools for first time...');
         this.cachedTools = this.toolGenerator.generateTools();
-        console.log(`[CONSOLE] Generated ${this.cachedTools.length} tools`);
-      } else {
-        console.log(`[CONSOLE] Using cached tools: ${this.cachedTools.length} tools`);
       }
       return { tools: this.cachedTools };
     });
@@ -73,11 +68,6 @@ export class MCPServer {
     // Call tool handler
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
-
-      // Log to file immediately when request is received
-      const callLogPath = path.join(process.cwd(), 'mcp-call-requests.log');
-      const callLogEntry = `[${new Date().toISOString()}] CALL REQUEST: ${name}\nArgs: ${JSON.stringify(args, null, 2)}\n=====\n`;
-      fs.appendFileSync(callLogPath, callLogEntry);
 
       try {
         const result = await this.executeTool(name, args);
@@ -212,7 +202,7 @@ export class MCPServer {
         fs.appendFileSync(debugLogPath, `Processing mask ${maskIndex} as region ${regionIndex} with color RGB(${r},${g},${b})\n`);
 
         // Scan through each pixel (use arrow function to avoid 'this' context issues)
-        mask.scan(0, 0, width, height, (x: number, y: number, idx: number) => {
+        mask.scan(0, 0, width, height, (x: number, y: number, _idx: number) => {
           // Get mask pixel color
           const pixelColor = mask.getPixelColor(x, y);
           const { r: mr, g: mg, b: mb } = intToRGBA(pixelColor);
@@ -282,24 +272,13 @@ export class MCPServer {
       // Generate payload from preset and user params
       const payload = this.toolGenerator.getPresetManager().presetToPayload(preset, params);
 
-      // Debug: Check preset type
-      fs.appendFileSync(debugLogPath, `Preset type: ${preset.type}\n`);
-      console.log(`[DEBUG] Preset type: ${preset.type}`);
-
       // Special handling for img2img - process file paths BEFORE switch statement
       if (preset.type === 'img2img') {
-        fs.appendFileSync(debugLogPath, `[IMG2IMG] Entering img2img processing block\n`);
-        console.log(`[IMG2IMG] Processing with params keys: ${Object.keys(params).join(', ')}`);
-
         // Handle base64 image input
         if (params.init_image) {
           let initImageData = params.init_image;
-          console.log(`[IMG2IMG] init_image input type check:`);
-          console.log(`  - Input length: ${params.init_image.length}`);
-          console.log(`  - First 100 chars: ${params.init_image.substring(0, 100)}`);
 
           // Check if it's a file path (not base64 data)
-          // More robust check: file path vs base64
           const isBase64 = /^[A-Za-z0-9+/]+=*$/.test(params.init_image) || params.init_image.startsWith('data:image');
           const isFilePath = !isBase64 && (
             params.init_image.includes('\\') ||
@@ -308,48 +287,25 @@ export class MCPServer {
             fs.existsSync(params.init_image)
           );
 
-          console.log(`  - Is base64: ${isBase64}`);
-          console.log(`  - Is file path: ${isFilePath}`);
-
           if (isFilePath) {
             try {
               const resolvedPath = path.resolve(params.init_image);
-              console.log(`  - Resolved path: ${resolvedPath}`);
-
               if (fs.existsSync(resolvedPath)) {
-                const stats = fs.statSync(resolvedPath);
-                console.log(`  - File size: ${stats.size} bytes`);
-
                 const buffer = fs.readFileSync(resolvedPath);
                 initImageData = buffer.toString('base64');
-
-                console.log(`  ✓ Successfully loaded init_image from file`);
-                console.log(`    - Base64 length: ${initImageData.length}`);
-                console.log(`    - Base64 preview: ${initImageData.substring(0, 50)}...`);
-                fs.appendFileSync(debugLogPath, `[IMG2IMG] init_image converted from file to base64 (${initImageData.length} chars)\n`);
               } else {
-                console.error(`  ✗ File does not exist: ${resolvedPath}`);
-                fs.appendFileSync(debugLogPath, `[IMG2IMG] ERROR: init_image file not found: ${resolvedPath}\n`);
+                throw new Error(`File does not exist: ${resolvedPath}`);
               }
             } catch (e) {
-              console.error(`  ✗ Error loading init_image: ${e}`);
-              fs.appendFileSync(debugLogPath, `[IMG2IMG] ERROR loading init_image: ${e}\n`);
+              throw new Error(`Error loading init_image: ${e}`);
             }
-          } else if (isBase64) {
-            console.log(`  - Using existing base64 data`);
-            fs.appendFileSync(debugLogPath, `[IMG2IMG] init_image already in base64 format\n`);
           }
 
           payload.init_images = [initImageData];
-          console.log(`[IMG2IMG] Final init_images[0] length: ${payload.init_images[0].length}`);
         }
 
         // Handle mask image for inpainting (preset 27 inpaint mode)
         if (params.mask_image) {
-          console.log(`[IMG2IMG] mask_image input type check:`);
-          console.log(`  - Input length: ${params.mask_image.length}`);
-          console.log(`  - First 100 chars: ${params.mask_image.substring(0, 100)}`);
-
           let maskImageData = params.mask_image;
 
           // Check if it's a file path (not base64 data)
@@ -361,54 +317,27 @@ export class MCPServer {
             fs.existsSync(params.mask_image)
           );
 
-          console.log(`  - Is base64: ${isMaskBase64}`);
-          console.log(`  - Is file path: ${isMaskFilePath}`);
-
           if (isMaskFilePath) {
             try {
               const resolvedPath = path.resolve(params.mask_image);
-              console.log(`  - Resolved path: ${resolvedPath}`);
 
               if (fs.existsSync(resolvedPath)) {
-                const stats = fs.statSync(resolvedPath);
-                console.log(`  - File size: ${stats.size} bytes`);
-
                 const buffer = fs.readFileSync(resolvedPath);
                 maskImageData = buffer.toString('base64');
-
-                console.log(`  ✓ Successfully loaded mask_image from file`);
-                console.log(`    - Base64 length: ${maskImageData.length}`);
-                console.log(`    - Base64 preview: ${maskImageData.substring(0, 50)}...`);
-                fs.appendFileSync(debugLogPath, `[IMG2IMG] mask_image converted from file to base64 (${maskImageData.length} chars)\n`);
-              } else {
-                console.error(`  ✗ File does not exist: ${resolvedPath}`);
-                fs.appendFileSync(debugLogPath, `[IMG2IMG] ERROR: mask_image file not found: ${resolvedPath}\n`);
               }
-            } catch (e) {
-              console.error(`  ✗ Error loading mask_image: ${e}`);
-              fs.appendFileSync(debugLogPath, `[IMG2IMG] ERROR loading mask_image: ${e}\n`);
+            } catch {
+              // Error loading mask image - use original input
             }
-          } else if (isMaskBase64) {
-            console.log(`  - Using existing base64 data`);
-            fs.appendFileSync(debugLogPath, `[IMG2IMG] mask_image already in base64 format\n`);
           }
 
           payload.mask = maskImageData;
-          console.log(`[IMG2IMG] Final mask length: ${payload.mask.length}`);
 
           // Apply inpaint-specific parameters if provided
-          if (params.mask_blur !== undefined) payload.mask_blur = params.mask_blur;
-          if (params.inpainting_fill !== undefined) payload.inpainting_fill = params.inpainting_fill;
-          if (params.inpaint_full_res !== undefined) payload.inpaint_full_res = params.inpaint_full_res;
-          if (params.inpaint_full_res_padding !== undefined) payload.inpaint_full_res_padding = params.inpaint_full_res_padding;
-          if (params.inpainting_mask_invert !== undefined) payload.inpainting_mask_invert = params.inpainting_mask_invert;
-
-          console.log(`[IMG2IMG] Inpaint mode enabled with parameters:`);
-          console.log(`  - mask_blur: ${payload.mask_blur}`);
-          console.log(`  - inpainting_fill: ${payload.inpainting_fill}`);
-          console.log(`  - inpaint_full_res: ${payload.inpaint_full_res}`);
-          console.log(`  - inpaint_full_res_padding: ${payload.inpaint_full_res_padding}`);
-          console.log(`  - inpainting_mask_invert: ${payload.inpainting_mask_invert}`);
+          if (params.mask_blur !== undefined) {payload.mask_blur = params.mask_blur;}
+          if (params.inpainting_fill !== undefined) {payload.inpainting_fill = params.inpainting_fill;}
+          if (params.inpaint_full_res !== undefined) {payload.inpaint_full_res = params.inpaint_full_res;}
+          if (params.inpaint_full_res_padding !== undefined) {payload.inpaint_full_res_padding = params.inpaint_full_res_padding;}
+          if (params.inpainting_mask_invert !== undefined) {payload.inpainting_mask_invert = params.inpainting_mask_invert;}
 
           fs.appendFileSync(debugLogPath, `[IMG2IMG] Inpaint parameters set\n`);
         }
@@ -417,14 +346,6 @@ export class MCPServer {
         // The API expects init_images array and mask, not init_image and mask_image
         delete payload.init_image;
         delete payload.mask_image;
-
-        // Final validation and debug summary
-        console.log('\n[IMG2IMG] === Final Payload Validation ===');
-        console.log(`  - init_images array present: ${!!payload.init_images}`);
-        console.log(`  - init_images[0] length: ${payload.init_images?.[0]?.length || 0}`);
-        console.log(`  - mask present: ${!!payload.mask}`);
-        console.log(`  - mask length: ${payload.mask?.length || 0}`);
-        console.log(`  - Payload ready for API: ${payload.init_images && payload.init_images[0] ? '✓' : '✗'}`);
 
         fs.appendFileSync(debugLogPath, `[IMG2IMG] Final payload state: init_images=${!!payload.init_images}, mask=${!!payload.mask}\n`);
       }
@@ -513,9 +434,9 @@ export class MCPServer {
 
               if (isEnabled) {
                 units[index].enabled = true;
-                if (params[config.modelParam]) units[index].model = params[config.modelParam];
-                if (params[config.moduleParam]) units[index].module = params[config.moduleParam];
-                if (params[config.weightParam] !== undefined) units[index].weight = params[config.weightParam];
+                if (params[config.modelParam]) {units[index].model = params[config.modelParam];}
+                if (params[config.moduleParam]) {units[index].module = params[config.moduleParam];}
+                if (params[config.weightParam] !== undefined) {units[index].weight = params[config.weightParam];}
                 fs.appendFileSync(debugLogPath, `Enabled ControlNet Unit ${index} (${reason})\n`);
               } else {
                 units[index].enabled = false;
@@ -527,7 +448,7 @@ export class MCPServer {
 
         // ADetailer selective configuration (up to 15 models)
         if (payload.alwayson_scripts?.ADetailer?.args) {
-          const adetailerArgs = payload.alwayson_scripts.ADetailer.args;
+          const _adetailerArgs = payload.alwayson_scripts.ADetailer.args;
 
           // Rebuild ADetailer args array with only specified models
           const newADetailerArgs: any[] = [
@@ -563,12 +484,12 @@ export class MCPServer {
 
           if (params.enable_hr) {
             // Apply Hires Fix parameters if enabled
-            if (params.hr_scale !== undefined) payload.hr_scale = params.hr_scale;
-            if (params.hr_upscaler) payload.hr_upscaler = params.hr_upscaler;
-            if (params.hr_second_pass_steps !== undefined) payload.hr_second_pass_steps = params.hr_second_pass_steps;
-            if (params.hr_denoising_strength !== undefined) payload.denoising_strength = params.hr_denoising_strength;
-            if (params.hr_resize_x !== undefined) payload.hr_resize_x = params.hr_resize_x;
-            if (params.hr_resize_y !== undefined) payload.hr_resize_y = params.hr_resize_y;
+            if (params.hr_scale !== undefined) {payload.hr_scale = params.hr_scale;}
+            if (params.hr_upscaler) {payload.hr_upscaler = params.hr_upscaler;}
+            if (params.hr_second_pass_steps !== undefined) {payload.hr_second_pass_steps = params.hr_second_pass_steps;}
+            if (params.hr_denoising_strength !== undefined) {payload.denoising_strength = params.hr_denoising_strength;}
+            if (params.hr_resize_x !== undefined) {payload.hr_resize_x = params.hr_resize_x;}
+            if (params.hr_resize_y !== undefined) {payload.hr_resize_y = params.hr_resize_y;}
 
             fs.appendFileSync(debugLogPath, `Hires Fix configured: scale=${payload.hr_scale}, upscaler=${payload.hr_upscaler}\n`);
           }
@@ -615,11 +536,11 @@ export class MCPServer {
           const dpArgs = payload.alwayson_scripts['dynamic prompts v2.17.1'].args;
 
           // Apply overrides to correct positions
-          if (params.enable_dynamic_prompts !== undefined) dpArgs[0] = params.enable_dynamic_prompts;
-          if (params.combinatorial_generation !== undefined) dpArgs[1] = params.combinatorial_generation;
-          if (params.magic_prompt !== undefined) dpArgs[3] = params.magic_prompt;
-          if (params.use_fixed_seed !== undefined) dpArgs[10] = params.use_fixed_seed; // Position 11 (0-indexed)
-          if (params.max_generations !== undefined) dpArgs[15] = params.max_generations; // Position 16 (0-indexed)
+          if (params.enable_dynamic_prompts !== undefined) {dpArgs[0] = params.enable_dynamic_prompts;}
+          if (params.combinatorial_generation !== undefined) {dpArgs[1] = params.combinatorial_generation;}
+          if (params.magic_prompt !== undefined) {dpArgs[3] = params.magic_prompt;}
+          if (params.use_fixed_seed !== undefined) {dpArgs[10] = params.use_fixed_seed;} // Position 11 (0-indexed)
+          if (params.max_generations !== undefined) {dpArgs[15] = params.max_generations;} // Position 16 (0-indexed)
 
           fs.appendFileSync(debugLogPath, `Dynamic Prompts configured: enabled=${dpArgs[0]}, combinatorial=${dpArgs[1]}, use_fixed_seed=${dpArgs[10]}, magic=${dpArgs[3]}, max_gen=${dpArgs[15]}\n`);
         }
@@ -627,10 +548,10 @@ export class MCPServer {
         // Regional Prompter overrides (16 arguments structure)
         if (params.rp_active) {
           // Initialize Regional Prompter if not exists
-          if (!payload.alwayson_scripts) payload.alwayson_scripts = {};
+          payload.alwayson_scripts ??= {};
 
           // Adjust base_ratio for Mask mode based on BREAK count
-          let baseRatioValue = params.rp_base_ratio || '0.2';
+          let baseRatioValue = params.rp_base_ratio ?? '0.2';
 
           // Fix for bratios persistence issue - ensure proper initialization
           if (!baseRatioValue || baseRatioValue === '' || baseRatioValue === '[]' || baseRatioValue === '[][]') {
@@ -689,7 +610,7 @@ export class MCPServer {
             params.rp_not_change_and || false,                 // 13: not_change_and
             params.rp_lora_stop_step || '0',                    // 14: lora_stop_step
             params.rp_lora_hires_stop_step || '0',              // 15: lora_hires_stop_step
-            params.rp_threshold || '0.4'                        // 16: threshold
+            params.rp_threshold ?? '0.4'                        // 16: threshold
           ];
 
           // Add 17th parameter for Mask mode
@@ -721,50 +642,40 @@ export class MCPServer {
 
       // Handle model checkpoint switching if specified in preset
       if (preset.base_settings?.checkpoint) {
-        console.log('Checkpoint specified in preset:', preset.base_settings.checkpoint);
         try {
           // Get current model from API
           const currentOptions = await this.apiClient.getOptions();
           const currentModel = currentOptions.sd_model_checkpoint;
-          console.log('Current model in API:', currentModel);
 
           // Build the full model title (format: "sd\\modelname.safetensors [hash]")
           let targetModel = preset.base_settings.checkpoint;
 
           // If the model name doesn't already have the full format, try to find it
           if (!targetModel.includes('.safetensors') && !targetModel.includes('.ckpt')) {
-            console.log('Looking up full model title for:', targetModel);
             // Get available models to find the full title
             const models = await this.apiClient.getModels();
             const modelInfo = models.find((m: any) => {
               // Try exact match with model_name first
-              if (m.model_name === targetModel) return true;
+              if (m.model_name === targetModel) {return true;}
               // Handle sd_ prefix - preset has sd_animagineXL40_v4Opt
               const targetWithoutPrefix = targetModel.startsWith('sd_') ? targetModel.substring(3) : targetModel;
-              if (m.model_name === targetWithoutPrefix) return true;
+              if (m.model_name === targetWithoutPrefix) {return true;}
               // Try adding sd_ prefix if not present
-              if (!targetModel.startsWith('sd_') && m.model_name === `sd_${targetModel}`) return true;
+              if (!targetModel.startsWith('sd_') && m.model_name === `sd_${targetModel}`) {return true;}
               // Try title includes
-              if (m.title.includes(targetWithoutPrefix)) return true;
+              if (m.title.includes(targetWithoutPrefix)) {return true;}
               // Try title includes with backslash
-              if (m.title.includes(`\\${targetWithoutPrefix}`)) return true;
+              if (m.title.includes(`\\${targetWithoutPrefix}`)) {return true;}
               return false;
             });
 
             if (modelInfo) {
               targetModel = modelInfo.title;
-              console.log('Found full model title:', targetModel);
-            } else {
-              console.log('Model not found in available models');
             }
           }
 
           // Only switch if the model is different
           if (currentModel !== targetModel) {
-            if (this.config.debug) {
-              console.log(`Switching model from ${currentModel} to ${targetModel}`);
-            }
-
             // Switch the model via options API
             await this.apiClient.setOptions({
               sd_model_checkpoint: targetModel
@@ -772,17 +683,8 @@ export class MCPServer {
 
             // Wait a bit for model to load
             await new Promise(resolve => setTimeout(resolve, 2000));
-
-            if (this.config.debug) {
-              console.log('Model switched successfully');
-            }
-          } else {
-            if (this.config.debug) {
-              console.log('Model already set, no switch needed');
-            }
           }
-        } catch (error) {
-          console.error('Failed to switch model:', error);
+        } catch {
           // Continue with generation even if model switch fails
         }
       }
@@ -826,7 +728,7 @@ export class MCPServer {
                     const buffer = fs.readFileSync(resolvedPath);
                     imageData = buffer.toString('base64');
                   }
-                } catch (e) {
+                } catch {
                   // If it fails, assume it's already base64 data
                 }
               }
@@ -849,11 +751,11 @@ export class MCPServer {
                   const controlnetModels = await this.apiClient.getControlNetModels();
                   const modelInfo = controlnetModels.find((modelName: string) => {
                     // Try exact match first
-                    if (modelName === unit.model) return true;
+                    if (modelName === unit.model) {return true;}
                     // Try includes match (without hash)
-                    if (modelName.includes(unit.model)) return true;
+                    if (modelName.includes(unit.model)) {return true;}
                     // Try case-insensitive match
-                    if (modelName.toLowerCase().includes(unit.model.toLowerCase())) return true;
+                    if (modelName.toLowerCase().includes(unit.model.toLowerCase())) {return true;}
                     return false;
                   });
 
@@ -871,14 +773,9 @@ export class MCPServer {
 
             fs.appendFileSync(debugLogPath, `ControlNet processing complete\n`);
           }
-        } catch (error) {
-          console.error('[ERROR] Failed to process ControlNet image:', error);
+        } catch {
+          // Failed to process ControlNet image
         }
-      }
-
-      // Debug: Log the actual payload being sent
-      if (payload.alwayson_scripts) {
-        console.error('[DEBUG] Payload alwayson_scripts:', JSON.stringify(payload.alwayson_scripts, null, 2));
       }
 
       // Execute based on preset type
@@ -886,14 +783,13 @@ export class MCPServer {
       switch (preset.type) {
         case 'txt2img':
           // Comprehensive payload logging before API call
-          const path = require('path');
           const payloadLogPath = path.join(process.cwd(), 'payload-debug.log');
           const timestamp = new Date().toISOString();
           fs.appendFileSync(payloadLogPath, `\n========== txt2img API Call at ${timestamp} ==========\n`);
           fs.appendFileSync(payloadLogPath, `Preset: ${presetName}\n`);
           fs.appendFileSync(payloadLogPath, `\n--- Core Parameters ---\n`);
           fs.appendFileSync(payloadLogPath, `prompt: "${payload.prompt}"\n`);
-          fs.appendFileSync(payloadLogPath, `negative_prompt: "${payload.negative_prompt || ''}"\n`);
+          fs.appendFileSync(payloadLogPath, `negative_prompt: "${payload.negative_prompt ?? ''}"\n`);
           fs.appendFileSync(payloadLogPath, `steps: ${payload.steps}\n`);
           fs.appendFileSync(payloadLogPath, `cfg_scale: ${payload.cfg_scale}\n`);
           fs.appendFileSync(payloadLogPath, `sampler_name: "${payload.sampler_name}"\n`);
@@ -907,22 +803,22 @@ export class MCPServer {
           fs.appendFileSync(payloadLogPath, `denoising_strength: ${payload.denoising_strength}\n`);
 
           fs.appendFileSync(payloadLogPath, `\n--- Model Checkpoint ---\n`);
-          fs.appendFileSync(payloadLogPath, `checkpoint_from_preset: "${preset.base_settings?.checkpoint || 'not specified'}"\n`);
-          fs.appendFileSync(payloadLogPath, `override_checkpoint: "${payload.override_settings?.checkpoint || 'not specified'}"\n`);
+          fs.appendFileSync(payloadLogPath, `checkpoint_from_preset: "${preset.base_settings?.checkpoint ?? 'not specified'}"\n`);
+          fs.appendFileSync(payloadLogPath, `override_checkpoint: "${payload.override_settings?.checkpoint ?? 'not specified'}"\n`);
 
           if (payload.alwayson_scripts) {
             fs.appendFileSync(payloadLogPath, `\n--- AlwaysOn Scripts ---\n`);
-            fs.appendFileSync(payloadLogPath, JSON.stringify(payload.alwayson_scripts, null, 2) + '\n');
+            fs.appendFileSync(payloadLogPath, `${JSON.stringify(payload.alwayson_scripts, null, 2)  }\n`);
           }
 
           fs.appendFileSync(payloadLogPath, `\n--- Full Payload ---\n`);
-          fs.appendFileSync(payloadLogPath, JSON.stringify(payload, (key, value) => {
+          fs.appendFileSync(payloadLogPath, `${JSON.stringify(payload, (key, value) => {
             // Truncate base64 image data for readability
             if (typeof value === 'string' && value.length > 100 && value.match(/^[A-Za-z0-9+/]+=*$/)) {
               return `[BASE64_DATA_${value.length}_CHARS]`;
             }
             return value;
-          }, 2) + '\n');
+          }, 2)  }\n`);
           fs.appendFileSync(payloadLogPath, `========== End of payload log ==========\n\n`);
 
           response = await this.apiClient.txt2img(payload);
@@ -932,12 +828,7 @@ export class MCPServer {
           // img2img processing is already handled before the switch statement (lines 290-356)
           // The payload should already have init_images and mask properly set from the pre-processing
 
-          // Debug: Log the final payload state
-          console.log('[IMG2IMG] Final payload state:');
-          console.log('- init_images present:', !!payload.init_images);
-          console.log('- init_images[0] length:', payload.init_images?.[0]?.length);
-          console.log('- mask present:', !!payload.mask);
-          console.log('- mask length:', payload.mask?.length);
+          // img2img processing is already handled before the switch statement
 
           response = await this.apiClient.img2img(payload);
           break;
@@ -948,7 +839,6 @@ export class MCPServer {
             // Read image file and convert to base64 if it's a file path
             let imageData = params.image;
             // Check if it's a file path (not base64 data)
-              const path = require('path');
             // If it looks like a path and not base64 data
             if (!params.image.startsWith('data:') && !params.image.match(/^[A-Za-z0-9+/]+=*$/)) {
               try {
@@ -958,7 +848,7 @@ export class MCPServer {
                   const buffer = fs.readFileSync(resolvedPath);
                   imageData = buffer.toString('base64');
                 }
-              } catch (e) {
+              } catch {
                 // If it fails, assume it's already base64 data
               }
             }
@@ -978,14 +868,13 @@ export class MCPServer {
             let imageData = params.image;
             // Check if it's a file path (not base64 data)
             if (!params.image.startsWith('data:') && !params.image.match(/^[A-Za-z0-9+/]+=*$/)) {
-                  const path = require('path');
               try {
                 const resolvedPath = path.resolve(params.image);
                 if (fs.existsSync(resolvedPath)) {
                   const buffer = fs.readFileSync(resolvedPath);
                   imageData = buffer.toString('base64');
                 }
-              } catch (e) {
+              } catch {
                 // If it fails, assume it's already base64 data
               }
             }
@@ -997,23 +886,21 @@ export class MCPServer {
               let originalPngInfo = null;
               try {
                 originalPngInfo = await this.apiClient.pngInfo(imageData);
-                console.log('[RemBG] Original PNG Info retrieved');
-              } catch (error) {
-                console.log('[RemBG] Could not read original PNG Info:', error);
+              } catch {
+                // Could not read original PNG Info
               }
 
               // Use dedicated /rembg endpoint instead of extras
               const rembgPayload = {
                 input_image: imageData,
-                model: preset.settings.rembg_model || "u2net",
-                return_mask: preset.settings.return_mask || false,
-                alpha_matting: preset.settings.alpha_matting || false,
-                alpha_matting_foreground_threshold: preset.settings.alpha_matting_foreground_threshold || 240,
-                alpha_matting_background_threshold: preset.settings.alpha_matting_background_threshold || 10,
-                alpha_matting_erode_size: preset.settings.alpha_matting_erode_size || 10
+                model: preset.settings.rembg_model ?? "u2net",
+                return_mask: preset.settings.return_mask ?? false,
+                alpha_matting: preset.settings.alpha_matting ?? false,
+                alpha_matting_foreground_threshold: preset.settings.alpha_matting_foreground_threshold ?? 240,
+                alpha_matting_background_threshold: preset.settings.alpha_matting_background_threshold ?? 10,
+                alpha_matting_erode_size: preset.settings.alpha_matting_erode_size ?? 10
               };
 
-              console.log('[RemBG] Using dedicated /rembg endpoint with model:', preset.settings.rembg_model);
               const rembgResponse = await this.apiClient.rembg(rembgPayload);
 
               // Reconstruct PNG Info to preserve original and add RemBG info
@@ -1022,7 +909,7 @@ export class MCPServer {
                 const postprocessingInfo = `Rembg: ${rembgModel}`;
 
                 // Parse original info to extract parameters
-                let baseInfo = originalPngInfo.info || '';
+                const baseInfo = originalPngInfo.info || '';
 
                 // Add postprocessing field to the original info
                 const extrasInfo = `postprocessing: ${postprocessingInfo}, extras: ${postprocessingInfo}`;
@@ -1034,7 +921,6 @@ export class MCPServer {
                   html_info: combinedInfo
                 };
 
-                console.log('[RemBG] Original PNG Info preserved with RemBG postprocessing added');
               } else {
                 response = rembgResponse;
               }
@@ -1074,11 +960,11 @@ export class MCPServer {
             const modelInfo = models.find((m: any) => {
               // Handle sd_ prefix consistently
               const modelNameWithoutPrefix = modelName.startsWith('sd_') ? modelName.substring(3) : modelName;
-              if (m.model_name === modelName) return true;
-              if (m.model_name === modelNameWithoutPrefix) return true;
-              if (!modelName.startsWith('sd_') && m.model_name === `sd_${modelName}`) return true;
-              if (m.title.includes(modelNameWithoutPrefix)) return true;
-              if (m.title.includes(`\\${modelNameWithoutPrefix}`)) return true;
+              if (m.model_name === modelName) {return true;}
+              if (m.model_name === modelNameWithoutPrefix) {return true;}
+              if (!modelName.startsWith('sd_') && m.model_name === `sd_${modelName}`) {return true;}
+              if (m.title.includes(modelNameWithoutPrefix)) {return true;}
+              if (m.title.includes(`\\${modelNameWithoutPrefix}`)) {return true;}
               return false;
             });
 
@@ -1112,9 +998,9 @@ export class MCPServer {
 
               for (const testModel of testModels) {
                 const resolved = controlnetModels.find((modelName: string) => {
-                  if (modelName === testModel) return true;
-                  if (modelName.includes(testModel)) return true;
-                  if (modelName.toLowerCase().includes(testModel.toLowerCase())) return true;
+                  if (modelName === testModel) {return true;}
+                  if (modelName.includes(testModel)) {return true;}
+                  if (modelName.toLowerCase().includes(testModel.toLowerCase())) {return true;}
                   return false;
                 });
 
@@ -1247,6 +1133,93 @@ export class MCPServer {
                 message: `Found ${models.length} RemBG models (hardcoded from extension)`
               }
             };
+          } else if (preset.settings?.action === 'png_info') {
+            // PNG Info extraction
+            const imagePath = params.image;
+            if (!imagePath) {
+              return {
+                success: false,
+                error: 'Image path is required for png_info action'
+              };
+            }
+
+            try {
+              // Read image file and convert to base64 if it's a file path
+              let imageData = imagePath;
+              let fileBuffer: Buffer | null = null;
+
+              if (!imagePath.startsWith('data:') && !imagePath.match(/^[A-Za-z0-9+/]+=*$/)) {
+                const resolvedPath = path.resolve(imagePath);
+                if (fs.existsSync(resolvedPath)) {
+                  fileBuffer = fs.readFileSync(resolvedPath);
+                  imageData = `data:image/png;base64,${fileBuffer.toString('base64')}`;
+                } else {
+                  return {
+                    success: false,
+                    error: `Image file not found: ${imagePath}`
+                  };
+                }
+              }
+
+              // Extract PNG metadata using Jimp
+              const image = await Jimp.read(imagePath);
+              const metadata: Record<string, any> = {
+                format: 'PNG',
+                width: image.width,
+                height: image.height,
+                mode: image.hasAlpha() ? 'RGBA' : 'RGB'
+              };
+
+              // Extract text chunks (generation parameters)
+              if (fileBuffer) {
+                // Try to extract PNG text chunks using png-chunks-extract
+                try {
+                  const pngChunks = require('png-chunks-extract');
+                  const pngChunkText = require('png-chunk-text');
+
+                  const chunks = pngChunks(fileBuffer);
+                  const textChunks = chunks.filter((chunk: any) => chunk.name === 'tEXt');
+
+                  const parameters: Record<string, string> = {};
+                  for (const chunk of textChunks) {
+                    const text = pngChunkText.decode(chunk.data);
+                    parameters[text.keyword] = text.text;
+                  }
+
+                  if (Object.keys(parameters).length > 0) {
+                    metadata.text_metadata = parameters;
+
+                    // Extract main generation parameters if available
+                    if (parameters.parameters) {
+                      metadata.generation_parameters = parameters.parameters;
+                    }
+                    if (parameters.Parameters) {
+                      metadata.generation_parameters = parameters.Parameters;
+                    }
+                  }
+                } catch (chunkError) {
+                  console.warn('Failed to extract PNG chunks:', chunkError);
+                }
+              }
+
+              return {
+                success: true,
+                data: {
+                  metadata: metadata,
+                  image_info: {
+                    path: imagePath,
+                    size: `${image.width}x${image.height}`,
+                    format: 'PNG'
+                  },
+                  message: `PNG info extracted successfully`
+                }
+              };
+            } catch (error: any) {
+              return {
+                success: false,
+                error: `Failed to extract PNG info: ${error.message}`
+              };
+            }
           } else {
             return {
               success: false,
@@ -1262,14 +1235,13 @@ export class MCPServer {
             let imageData = params.image;
             // Check if it's a file path (not base64 data)
             if (!params.image.startsWith('data:') && !params.image.match(/^[A-Za-z0-9+/]+=*$/)) {
-                  const path = require('path');
               try {
                 const resolvedPath = path.resolve(params.image);
                 if (fs.existsSync(resolvedPath)) {
                   const buffer = fs.readFileSync(resolvedPath);
                   imageData = buffer.toString('base64');
                 }
-              } catch (e) {
+              } catch {
                 // If it fails, assume it's already base64 data
               }
             }
@@ -1295,14 +1267,13 @@ export class MCPServer {
           // Read image file and convert to base64 if it's a file path
           let combinedImageData = params.image;
           if (!params.image.startsWith('data:') && !params.image.match(/^[A-Za-z0-9+/]+=*$/)) {
-            const path = require('path');
             try {
               const resolvedPath = path.resolve(params.image);
               if (fs.existsSync(resolvedPath)) {
                 const buffer = fs.readFileSync(resolvedPath);
                 combinedImageData = buffer.toString('base64');
               }
-            } catch (e) {
+            } catch {
               // If it fails, assume it's already base64 data
             }
           }
@@ -1310,7 +1281,7 @@ export class MCPServer {
           let currentImage = combinedImageData;
           let upscaleInfo = '';
           let rembgInfo = '';
-          let allOperations: string[] = [];
+          const allOperations: string[] = [];
 
           // Step 1: Upscale processing (if specified)
           const upscalerModel = params.upscaler_1 || preset.settings?.upscaler_1;
@@ -1318,16 +1289,15 @@ export class MCPServer {
             const upscalePayload = {
               image: currentImage,
               upscaler_1: upscalerModel,
-              upscaling_resize: params.upscaling_resize || preset.settings?.upscaling_resize || 4,
-              upscaler_2: params.upscaler_2 || preset.settings?.upscaler_2 || "None",
-              extras_upscaler_2_visibility: params.extras_upscaler_2_visibility || preset.settings?.extras_upscaler_2_visibility || 0,
-              gfpgan_visibility: params.gfpgan_visibility || preset.settings?.gfpgan_visibility || 0,
-              codeformer_visibility: params.codeformer_visibility || preset.settings?.codeformer_visibility || 0,
-              codeformer_weight: params.codeformer_weight || preset.settings?.codeformer_weight || 0,
-              upscale_first: params.upscale_first || preset.settings?.upscale_first || false
+              upscaling_resize: params.upscaling_resize ?? preset.settings?.upscaling_resize ?? 4,
+              upscaler_2: params.upscaler_2 ?? preset.settings?.upscaler_2 ?? "None",
+              extras_upscaler_2_visibility: params.extras_upscaler_2_visibility ?? preset.settings?.extras_upscaler_2_visibility ?? 0,
+              gfpgan_visibility: params.gfpgan_visibility ?? preset.settings?.gfpgan_visibility ?? 0,
+              codeformer_visibility: params.codeformer_visibility ?? preset.settings?.codeformer_visibility ?? 0,
+              codeformer_weight: params.codeformer_weight ?? preset.settings?.codeformer_weight ?? 0,
+              upscale_first: params.upscale_first ?? preset.settings?.upscale_first ?? false
             };
 
-            console.log('[Combined] Executing Upscale with:', upscalerModel);
             const upscaleResponse = await this.apiClient.extrasSingleImage(upscalePayload);
             currentImage = upscaleResponse.image;
 
@@ -1345,14 +1315,13 @@ export class MCPServer {
             const rembgPayload = {
               input_image: currentImage,
               model: rembgModel,
-              return_mask: params.return_mask || preset.settings?.return_mask || false,
-              alpha_matting: params.alpha_matting || preset.settings?.alpha_matting || false,
-              alpha_matting_foreground_threshold: params.alpha_matting_foreground_threshold || preset.settings?.alpha_matting_foreground_threshold || 270,
-              alpha_matting_background_threshold: params.alpha_matting_background_threshold || preset.settings?.alpha_matting_background_threshold || 10,
-              alpha_matting_erode_size: params.alpha_matting_erode_size || preset.settings?.alpha_matting_erode_size || 10
+              return_mask: params.return_mask ?? preset.settings?.return_mask ?? false,
+              alpha_matting: params.alpha_matting ?? preset.settings?.alpha_matting ?? false,
+              alpha_matting_foreground_threshold: params.alpha_matting_foreground_threshold ?? preset.settings?.alpha_matting_foreground_threshold ?? 270,
+              alpha_matting_background_threshold: params.alpha_matting_background_threshold ?? preset.settings?.alpha_matting_background_threshold ?? 10,
+              alpha_matting_erode_size: params.alpha_matting_erode_size ?? preset.settings?.alpha_matting_erode_size ?? 10
             };
 
-            console.log('[Combined] Executing RemBG with:', rembgModel);
             const rembgResponse = await this.apiClient.rembg(rembgPayload);
             currentImage = rembgResponse.image;
             rembgInfo = `Rembg: ${rembgModel}`;
@@ -1430,10 +1399,10 @@ export class MCPServer {
       } else if (preset.type === 'tagger') {
         // Tagger response - convert to comma-separated tags
         const taggerResponse = response as any;
-        if (taggerResponse.caption && taggerResponse.caption.tag) {
-          const threshold = preset.settings?.threshold || 0.35;
+        if (taggerResponse.caption?.tag) {
+          const threshold = preset.settings?.threshold ?? 0.35;
           const tags = Object.entries(taggerResponse.caption.tag)
-            .filter(([tag, confidence]: [string, any]) => confidence >= threshold)
+            .filter(([_tag, confidence]: [string, any]) => confidence >= threshold)
             .sort(([, a]: [string, any], [, b]: [string, any]) => b - a) // Sort by confidence descending
             .map(([tag]: [string, any]) => tag);
 
@@ -1460,13 +1429,22 @@ export class MCPServer {
           let savedFiles: string[];
 
           // Special handling for RemBG and Upscale to preserve PNG Info
-          if (extrasResponse.html_info && (preset.settings?.rembg_model || preset.settings?.upscaler_1)) {
+          if (extrasResponse.html_info && (preset.settings?.rembg_model || preset.settings?.upscaler_1 || params.rembg_model || params.upscaler_1)) {
             // Read original PNG Info before processing
             let originalPngInfo = null;
             try {
-              originalPngInfo = await this.apiClient.pngInfo(params.image);
-            } catch (error) {
-              console.log('[Extras] Could not read original PNG Info:', error);
+                // Convert file path to base64 if necessary
+              let imageDataForPngInfo = params.image;
+              if (!params.image.startsWith('data:') && !params.image.match(/^[A-Za-z0-9+/]+=*$/)) {
+                const resolvedPath = path.resolve(params.image);
+                if (fs.existsSync(resolvedPath)) {
+                  const buffer = fs.readFileSync(resolvedPath);
+                  imageDataForPngInfo = buffer.toString('base64');
+                }
+              }
+              originalPngInfo = await this.apiClient.pngInfo(imageDataForPngInfo);
+            } catch {
+              // Could not read original PNG Info
             }
 
             savedFiles = await this.saveImagesWithPngInfo([extrasResponse.image], presetName, extrasResponse.html_info, originalPngInfo);
@@ -1494,9 +1472,18 @@ export class MCPServer {
           // Read original PNG Info before processing
           let originalPngInfo = null;
           try {
-            originalPngInfo = await this.apiClient.pngInfo(params.image);
-          } catch (error) {
-            console.log('[Combined] Could not read original PNG Info:', error);
+            // Convert file path to base64 if necessary
+            let imageDataForPngInfo = params.image;
+            if (!params.image.startsWith('data:') && !params.image.match(/^[A-Za-z0-9+/]+=*$/)) {
+              const resolvedPath = path.resolve(params.image);
+              if (fs.existsSync(resolvedPath)) {
+                const buffer = fs.readFileSync(resolvedPath);
+                imageDataForPngInfo = buffer.toString('base64');
+              }
+            }
+            originalPngInfo = await this.apiClient.pngInfo(imageDataForPngInfo);
+          } catch {
+            // Could not read original PNG Info
           }
 
           // Save with combined PNG Info preservation
@@ -1553,10 +1540,6 @@ export class MCPServer {
       fs.writeFileSync(filepath, buffer);
 
       savedFiles.push(filepath);
-
-      if (this.config.debug) {
-        console.log(`Saved image: ${filepath}`);
-      }
     }
 
     return savedFiles;
@@ -1594,12 +1577,12 @@ export class MCPServer {
         let originalParameters = htmlInfo;
         let existingPostprocessing = '';
 
-        if (originalPngInfo && originalPngInfo.info) {
+        if (originalPngInfo?.info) {
           // Use the original PNG info as parameters
           originalParameters = originalPngInfo.info;
 
           // Get existing postprocessing info from original image
-          if (originalPngInfo.items && originalPngInfo.items.postprocessing) {
+          if (originalPngInfo.items?.postprocessing) {
             existingPostprocessing = originalPngInfo.items.postprocessing;
           }
         }
@@ -1611,60 +1594,15 @@ export class MCPServer {
           newPostprocessingInfo = postprocessingMatch[1];
         }
 
-        // Improved conditional logic for PNG Info assembly
+        // Official Reforge behavior: no history accumulation, only show latest processing
         let postprocessingInfo = '';
         let extrasInfo = '';
 
-        // Parse operation types from the info strings
-        const hasUpscaleInfo = (info: string) => /upscale|Postprocess upscaler/i.test(info);
-        const hasRemBGInfo = (info: string) => /rembg/i.test(info);
-
-        const existingUpscale = existingPostprocessing && hasUpscaleInfo(existingPostprocessing);
-        const existingRemBG = existingPostprocessing && hasRemBGInfo(existingPostprocessing);
-        const newUpscale = newPostprocessingInfo && hasUpscaleInfo(newPostprocessingInfo);
-        const newRemBG = newPostprocessingInfo && hasRemBGInfo(newPostprocessingInfo);
-
-        // Collect Upscale info (prioritize existing, then new)
-        let upscaleInfo = '';
-        if (existingUpscale) {
-          upscaleInfo = existingPostprocessing;
-        } else if (newUpscale) {
-          upscaleInfo = newPostprocessingInfo;
-        }
-
-        // Collect RemBG info (prioritize new, then existing)
-        let rembgInfo = '';
-        if (newRemBG) {
-          rembgInfo = newPostprocessingInfo;
-        } else if (existingRemBG) {
-          rembgInfo = existingPostprocessing;
-        }
-
-        // Apply the improved conditional assembly logic
-        if (upscaleInfo && rembgInfo) {
-          // Both operations: Upscale + separator + RemBG
-          postprocessingInfo = `${upscaleInfo}, ${rembgInfo}`;
-          extrasInfo = `${upscaleInfo}, ${rembgInfo}`;
-        } else if (upscaleInfo) {
-          // Upscale only
-          postprocessingInfo = upscaleInfo;
-          extrasInfo = upscaleInfo;
-        } else if (rembgInfo) {
-          // RemBG only (no separator)
-          postprocessingInfo = rembgInfo;
-          extrasInfo = rembgInfo;
-        } else {
-          // Fallback to simple combination if parsing fails
-          if (existingPostprocessing && newPostprocessingInfo) {
-            postprocessingInfo = `${existingPostprocessing}, ${newPostprocessingInfo}`;
-            extrasInfo = `${existingPostprocessing}, ${newPostprocessingInfo}`;
-          } else if (existingPostprocessing) {
-            postprocessingInfo = existingPostprocessing;
-            extrasInfo = existingPostprocessing;
-          } else if (newPostprocessingInfo) {
-            postprocessingInfo = newPostprocessingInfo;
-            extrasInfo = newPostprocessingInfo;
-          }
+        // Simply use the current processing info from htmlInfo
+        if (newPostprocessingInfo) {
+          // Use only the latest processing info (official Reforge behavior)
+          postprocessingInfo = newPostprocessingInfo;
+          extrasInfo = newPostprocessingInfo;
         }
 
         // Create 3 separate tEXt chunks in SD WebUI standard format
@@ -1680,18 +1618,12 @@ export class MCPServer {
 
         // Save the modified PNG
         fs.writeFileSync(filepath, newBuffer);
-        console.log(`[Extras] Saved image with PNG Info: ${filepath}`);
-      } catch (error) {
+      } catch {
         // Fallback to simple save if PNG processing fails
-        console.log(`[Extras] Failed to embed PNG Info, using simple save: ${error}`);
         fs.writeFileSync(filepath, buffer);
       }
 
       savedFiles.push(filepath);
-
-      if (this.config.debug) {
-        console.log(`Saved image with Extras PNG Info: ${filepath}`);
-      }
     }
 
     return savedFiles;
@@ -1728,20 +1660,14 @@ export class MCPServer {
    */
   async start(): Promise<void> {
     // Ensure all presets are loaded before starting server
-    console.error('[DEBUG] Starting tool preload process...');
     const tools = this.toolGenerator.generateTools();
     this.cachedTools = tools; // Cache the tools for immediate availability
-    console.error(`[DEBUG] Preloaded ${tools.length} tools during startup`);
 
     // Add explicit delay to ensure all initialization is complete
-    console.error('[DEBUG] Waiting for initialization to complete...');
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    console.error('[DEBUG] Starting MCP transport connection...');
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-
-    console.error('[DEBUG] MCP server connection established');
 
     if (this.config.debug) {
       console.error(`${this.config.serverName} v${this.config.serverVersion} started`);

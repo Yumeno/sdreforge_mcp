@@ -74,8 +74,8 @@ npm install
 npm run build
 
 # 環境設定ファイルを作成
-cp .env.example .env.local
-# .env.localを編集してSD WebUIのURLを設定
+cp .env.sample .env
+# .envを編集してSD WebUIのURLを設定
 ```
 
 ## 🔧 Claude Codeへの設定

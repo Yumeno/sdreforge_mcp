@@ -1,9 +1,0 @@
-# (10) utility samplers list
-name: utility_samplers
-type: utility
-description: "Get list of available samplers"
-
-settings:
-  action: "samplers"
-  endpoint: "/sdapi/v1/samplers"
-  method: "GET"

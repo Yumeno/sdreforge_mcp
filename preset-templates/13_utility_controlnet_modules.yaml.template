@@ -1,9 +1,7 @@
-# (12) utility controlnet modules list
+# (13) Utility ControlNet Modules
 name: utility_controlnet_modules
 type: utility
 description: "Get list of available ControlNet preprocessor modules"
 
 settings:
   action: "controlnet_modules"
-  endpoint: "/controlnet/module_list"
-  method: "GET"
