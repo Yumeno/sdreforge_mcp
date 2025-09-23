@@ -280,56 +280,245 @@ npm run migrate:presets:report
 - 合計削減: 24個のファイル
 ```
 
-## 🎯 クイックスタート
+## 🎯 使用方法と実例
 
-### 基本的な画像生成
+### 基本的なテキスト→画像生成
 
 ```bash
-# Claude Code で以下を実行
+# 基本的な生成
 sdreforge_txt2img_dynamic(
-  prompt="beautiful anime girl, masterpiece",
-  steps=28,
-  cfg_scale=7,
-  width=1024,
-  height=1024
+  prompt="1girl, solo, long hair, school uniform, outdoors"
+)
+
+# 品質重視の生成
+sdreforge_txt2img_dynamic(
+  prompt="(best quality:1.4), (masterpiece:1.4), 1girl, portrait, detailed face",
+  steps=32,
+  cfg_scale=7.0
+)
+
+# ネガティブプロンプト追加
+sdreforge_txt2img_dynamic(
+  prompt="1girl, kimono, cherry blossoms",
+  negative_prompt_user="blurry, low quality"
 )
 ```
 
-### ControlNet を使った構図制御
+### ControlNetを使った構図制御
 
 ```bash
-# ポーズ画像を使った生成
+# 基本的なポーズ制御
 sdreforge_txt2img_dynamic(
-  prompt="anime girl dancing",
+  prompt="1girl, dancing, flowing dress",
   controlnet_image="pose_reference.png",
   controlnet_model_1="CN-anytest3_animagine4_A",
   controlnet_weight_1=0.8
 )
-```
 
-### 高解像度生成
-
-```bash
-# Hires Fix を使った高品質生成
+# 複数ControlNet使用
 sdreforge_txt2img_dynamic(
-  prompt="detailed anime portrait",
-  enable_hr=true,
-  hr_scale=2.0,
-  hr_upscaler="R-ESRGAN 4x+ Anime6B"
+  prompt="1girl, standing in garden",
+  controlnet_image="pose.png",
+  controlnet_image_2="depth_map.png",
+  controlnet_model_1="CN-anytest3_animagine4_A",
+  controlnet_model_2="CN-anytest3_animagine4_A",
+  controlnet_weight_1=0.8,
+  controlnet_weight_2=0.5
 )
 ```
 
-### 複数拡張機能の組み合わせ
+### 高解像度生成（Hires Fix）
 
 ```bash
-# ControlNet + ADetailer + Dynamic Prompts
+# 高品質アップスケール
 sdreforge_txt2img_dynamic(
-  prompt="{cute|beautiful} anime girl with {red|blue} hair",
-  controlnet_image="pose.png",
-  controlnet_model_1="CN-anytest3_animagine4_A",
+  prompt="1girl, detailed portrait, studio lighting",
+  enable_hr=true,
+  hr_scale=2.0,
+  hr_upscaler="R-ESRGAN 4x+ Anime6B",
+  hr_second_pass_steps=20
+)
+
+# 控えめなHires Fix
+sdreforge_txt2img_dynamic(
+  prompt="landscape, detailed background",
+  enable_hr=true,
+  hr_scale=1.5,
+  denoising_strength=0.5
+)
+```
+
+### ADetailerによる自動修正
+
+```bash
+# 顔・手の自動修正
+sdreforge_txt2img_dynamic(
+  prompt="1girl, full body, detailed hands",
+  adetailer_model_2="hand_yolov8n.pt"
+)
+
+# 複数検出モデル使用
+sdreforge_txt2img_dynamic(
+  prompt="2girls, sitting together",
   adetailer_model_2="hand_yolov8n.pt",
+  adetailer_model_3="person_yolov8n-seg.pt"
+)
+```
+
+### Regional Prompterによる領域制御
+
+```bash
+# Matrix Mode（グリッド分割）
+sdreforge_txt2img_dynamic(
+  prompt="2girls ADDBASE red hair, school uniform ADDCOL blue hair, kimono",
+  rp_active=true,
+  rp_mode="Matrix",
+  rp_matrix_submode="Columns",
+  rp_divide_ratio="1,1"
+)
+
+# Mask Mode（マスク指定）
+sdreforge_txt2img_dynamic(
+  prompt="fantasy landscape",
+  rp_active=true,
+  rp_mode="Mask",
+  rp_mask_1="sky_area.png",
+  rp_mask_2="ground_area.png"
+)
+```
+
+### Dynamic Promptsによる自動展開
+
+```bash
+# ワイルドカード展開
+sdreforge_txt2img_dynamic(
+  prompt="{cute|beautiful|elegant} 1girl with {red|blue|black} hair",
   enable_dynamic_prompts=true,
   batch_size=4
+)
+
+# Magic Prompt使用
+sdreforge_txt2img_dynamic(
+  prompt="anime girl",
+  enable_dynamic_prompts=true,
+  magic_prompt=true
+)
+```
+
+### 画像→画像変換（IMG2IMG）
+
+```bash
+# 基本的な変換
+sdreforge_img2img_dynamic(
+  prompt="anime art style, high quality",
+  init_image="photo.png",
+  denoising_strength=0.7
+)
+
+# インペイント（部分編集）
+sdreforge_img2img_dynamic(
+  prompt="blue sky with clouds",
+  init_image="landscape.png",
+  mask_image="sky_mask.png",
+  denoising_strength=0.8,
+  inpaint_full_res=true
+)
+
+# ControlNet付きIMG2IMG
+sdreforge_img2img_dynamic(
+  prompt="1girl, different outfit",
+  init_image="original.png",
+  controlnet_image="pose_guide.png",
+  controlnet_model_1="CN-anytest3_animagine4_A",
+  denoising_strength=0.6
+)
+```
+
+### 画像処理（Extras）
+
+```bash
+# アップスケール
+sdreforge_extras_upscale_dynamic(
+  image="small_image.png",
+  upscaler_1="R-ESRGAN 4x+ Anime6B",
+  upscaling_resize=4
+)
+
+# 背景除去
+sdreforge_extras_rembg_dynamic(
+  image="portrait.png",
+  rembg_model="u2net_human_seg",
+  alpha_matting=true
+)
+
+# 背景除去＋アップスケール
+sdreforge_extras_combined_rembg_upscale(
+  image="character.png",
+  rembg_model="isnet-anime",
+  upscaler_1="R-ESRGAN 4x+ Anime6B",
+  upscaling_resize=2
+)
+```
+
+### 画像タグ生成
+
+```bash
+# アニメ画像のタグ生成
+sdreforge_tagger_dynamic(
+  image="anime_artwork.png",
+  model="wd-EVA02-Large-v3",
+  threshold=0.35
+)
+
+# 自然言語説明
+sdreforge_tagger_dynamic(
+  image="photo.png",
+  model="BLIP-2",
+  threshold=0.0
+)
+```
+
+### バッチ生成
+
+```bash
+# 複数画像同時生成
+sdreforge_txt2img_dynamic(
+  prompt="1girl, various poses",
+  batch_size=4,
+  n_iter=2,
+  seed=12345
+)
+
+# 組み合わせ生成
+sdreforge_txt2img_dynamic(
+  prompt="{standing|sitting} 1girl in {park|room}",
+  enable_dynamic_prompts=true,
+  combinatorial_generation=true,
+  batch_size=2
+)
+```
+
+### 高度な組み合わせ例
+
+```bash
+# 完全パイプライン
+sdreforge_txt2img_dynamic(
+  prompt="(masterpiece:1.2), 1girl, detailed face, perfect hands",
+  controlnet_image="pose_reference.png",
+  controlnet_model_1="CN-anytest3_animagine4_A",
+  controlnet_weight_1=0.8,
+  adetailer_model_2="hand_yolov8n.pt",
+  enable_hr=true,
+  hr_scale=1.5,
+  hr_upscaler="R-ESRGAN 4x+ Anime6B",
+  rp_active=true,
+  rp_mode="Matrix",
+  rp_matrix_submode="Rows",
+  rp_divide_ratio="1,2",
+  enable_dynamic_prompts=true,
+  steps=28,
+  cfg_scale=7.0,
+  batch_size=2
 )
 ```
 
@@ -429,13 +618,13 @@ base_settings:
 ```bash
 # 画像を提供すると自動的にControlNetが有効化
 sdreforge_txt2img_dynamic(
-  prompt="anime girl",
+  prompt="1girl, standing",
   controlnet_image="pose.png"  # これだけで自動有効化
 )
 
 # 明示的制御も可能
 sdreforge_txt2img_dynamic(
-  prompt="anime girl",
+  prompt="1girl, dancing",
   controlnet_image="pose.png",
   controlnet_enable_1=true,    # 明示的有効化
   controlnet_model_1="CN-anytest3_animagine4_A"
@@ -447,7 +636,7 @@ sdreforge_txt2img_dynamic(
 # Model 1は常に face_yolov8n.pt で有効
 # Model 2以降は指定時のみ有効化
 sdreforge_txt2img_dynamic(
-  prompt="anime girl",
+  prompt="1girl, portrait",
   adetailer_model_2="hand_yolov8n.pt"  # Model 2を自動有効化
 )
 ```

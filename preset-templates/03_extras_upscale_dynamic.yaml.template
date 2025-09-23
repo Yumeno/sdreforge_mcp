@@ -1,36 +1,64 @@
-# Combined Processing - Upscale Only (Default Configuration)
+# ================================================================================================
+# (03) Image Upscaling Dynamic Preset - Professional Quality Enhancement
+# ================================================================================================
+#
+# This preset handles image upscaling with various AI upscaler models.
+# Can be combined with face restoration and other post-processing features.
+#
+# ================================================================================================
+# UPSCALING PROCESS:
+# ================================================================================================
+# Input image → Selected upscaler model → Scaled output (1x-8x)
+# Optional: Face restoration (GFPGAN/CodeFormer) can be applied
+# Optional: Secondary upscaler can be mixed for hybrid results
+#
+# To skip upscaling: set upscaler_1="none"
+# To skip background removal: set rembg_model="none" (or don't specify)
+#
+# ================================================================================================
+
 name: extras_upscale_dynamic
 type: extras_combined
 description: "Image upscaling (1x-8x) with multiple upscaler models - use 'none' for rembg_model to skip background removal"
 
 settings:
   # RemBG settings - NOT SPECIFIED (will be skipped by default)
-  # rembg_model: "none"          # Set to "none" to skip RemBG (COMMENTED OUT = use "none" override)
+  # rembg_model: "none"          # Background removal model - set to skip by default
 
-  # Upscale settings - DEFAULT ENABLED
-  upscaler_1: "{{UPSCALER_DEFAULT_MODEL}}"   # Primary upscaler - Override to "none" to skip
-  upscaling_resize: {{UPSCALER_DEFAULT_SCALE}}           # Scale factor (1-8) - Reduced from 4 to 2 for performance
+  # Upscale settings - PRIMARY FUNCTION
+  upscaler_1: "{{UPSCALER_DEFAULT_MODEL}}"   # Primary upscaler model (e.g., "4x-UltraSharp", "R-ESRGAN 4x+")
+  upscaling_resize: {{UPSCALER_DEFAULT_SCALE}}  # Scale factor (1-8x multiplication)
 
   # Optional secondary upscaler for mixing
-  upscaler_2: "None"            # Second upscaler
-  extras_upscaler_2_visibility: 0  # Mix ratio (0-1)
+  upscaler_2: "None"            # Secondary upscaler for blending (set to model name to enable)
+  extras_upscaler_2_visibility: 0  # Blend ratio with secondary upscaler (0-1, 0=primary only)
 
-  # Face restoration (optional)
-  gfpgan_visibility: 0          # GFPGAN strength (0-1)
-  codeformer_visibility: 0      # CodeFormer strength (0-1)
-  codeformer_weight: 0          # CodeFormer fidelity (0-1)
+  # Face restoration (optional) - Improves facial details
+  gfpgan_visibility: 0          # GFPGAN face restoration strength (0=off, 1=full)
+  codeformer_visibility: 0      # CodeFormer face restoration strength (0=off, 1=full)
+  codeformer_weight: 0          # CodeFormer fidelity vs quality (0=quality, 1=fidelity)
 
   # Processing order
-  upscale_first: false          # Upscale before face restoration
+  upscale_first: false          # Process order: false=face restore→upscale, true=upscale→face restore
 
-# Available upscaler models (for reference):
-# - 4x-UltraSharp (General purpose, sharp)
-# - 4x_fatal_Anime_500000_G (Anime optimized)
-# - R-ESRGAN 4x+ (General purpose)
-# - R-ESRGAN 4x+ Anime6B (Anime optimized)
-# - LDSR (Latent Diffusion Super Resolution)
-# - SwinIR 4x (Transformer based)
-# - ScuNET (Noise reduction)
-# - ScuNET PSNR (Optimized for PSNR)
-# - Lanczos (Fast, basic)
-# - Nearest (Fastest, pixelated)
+# ================================================================================================
+# AVAILABLE UPSCALER MODELS:
+# ================================================================================================
+# General Purpose:
+# - 4x-UltraSharp              # Sharp details, general use
+# - R-ESRGAN 4x+              # Balanced quality, versatile
+# - LDSR                      # Latent diffusion super resolution
+# - SwinIR 4x                 # Transformer-based, high quality
+#
+# Anime/Illustration:
+# - R-ESRGAN 4x+ Anime6B      # Optimized for anime artwork
+# - {{HIRES_DEFAULT_UPSCALER}} # Default hires upscaler from config
+#
+# Fast/Simple:
+# - Lanczos                   # Fast, lower quality
+# - Nearest                   # Pixel-perfect, no smoothing
+#
+# Specialized:
+# - ScuNET GAN               # Noise reduction focused
+# - ScuNET PSNR              # Detail preservation focused
+# - ESRGAN_4x                # Legacy ESRGAN model

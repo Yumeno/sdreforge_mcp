@@ -1,26 +1,64 @@
-# Combined Processing - RemBG Only (Default Configuration)
+# ================================================================================================
+# (04) Background Removal Dynamic Preset - Professional Background Processing
+# ================================================================================================
+#
+# This preset handles background removal using various AI models.
+# Removes backgrounds while preserving subject details with optional edge refinement.
+#
+# ================================================================================================
+# BACKGROUND REMOVAL PROCESS:
+# ================================================================================================
+# Input image → AI detection model → Subject mask → Transparent background output
+# Optional: Alpha matting for refined edges around complex subjects (hair, fur, etc.)
+#
+# return_mask=false: Returns RGBA image with transparent background
+# return_mask=true: Returns black/white mask instead of processed image
+#
+# To skip upscaling: set upscaler_1="none" (or don't specify)
+#
+# ================================================================================================
+
 name: extras_rembg_dynamic
 type: extras_combined
 description: "Background removal with model selection (u2net/isnet-anime/silueta) - use 'none' for upscaler_1 to skip upscaling"
 
 settings:
-  # RemBG settings - DEFAULT ENABLED
-  rembg_model: "{{REMBG_DEFAULT_MODEL}}"          # RemBG model - Override to "none" to skip
-  return_mask: false            # Return mask instead of RGBA
-  alpha_matting: {{REMBG_DEFAULT_ALPHA_MATTING}}           # Enable alpha matting for edge refinement
-  alpha_matting_foreground_threshold: 240  # Foreground threshold (0-255)
-  alpha_matting_background_threshold: 50   # Background threshold (0-255)
-  alpha_matting_erode_size: 10             # Erosion size
+  # RemBG settings - PRIMARY FUNCTION
+  rembg_model: "{{REMBG_DEFAULT_MODEL}}"          # AI model for background detection and removal
+  return_mask: false            # Output type: false=RGBA image, true=mask only
+  alpha_matting: {{REMBG_DEFAULT_ALPHA_MATTING}}  # Edge refinement for complex subjects (hair, fur)
+  alpha_matting_foreground_threshold: 240  # Foreground detection sensitivity (0-255, higher=stricter)
+  alpha_matting_background_threshold: 50   # Background detection sensitivity (0-255, lower=stricter)
+  alpha_matting_erode_size: 10             # Edge erosion size for cleaner separation
 
   # Upscale settings - NOT SPECIFIED (will be skipped by default)
-  # upscaler_1: "none"           # Set to "none" to skip Upscale (COMMENTED OUT = use "none" override)
-  # upscaling_resize: 2          # Scale factor (would be ignored when upscaler_1 not set)
+  # upscaler_1: "none"           # Upscaler model - set to skip by default
+  # upscaling_resize: 2          # Scale factor (ignored when upscaler not set)
 
-# Available rembg models (for reference):
-# - u2net (General purpose, balanced)
-# - u2netp (Lightweight version)
-# - u2net_human_seg (Human optimized)
-# - u2net_cloth_seg (Clothing optimized)
-# - isnet-anime (Anime character optimized)
-# - silueta (Silhouette extraction)
-# - isnet-general-use (General purpose)
+# ================================================================================================
+# AVAILABLE REMBG MODELS:
+# ================================================================================================
+# General Purpose:
+# - u2net                      # Balanced quality and speed for most subjects
+# - u2netp                     # Lightweight version, faster processing
+# - isnet-general-use          # Improved general purpose model
+# - birefnet-general           # High accuracy general purpose model
+#
+# Human/Person Focused:
+# - u2net_human_seg            # Optimized for people and portraits
+# - birefnet-portrait          # Portrait/human face specialized
+#
+# Anime/Illustration:
+# - isnet-anime                # Specialized for anime characters and artwork
+#
+# Specialized:
+# - u2net_cloth_seg            # Clothing and fashion items
+# - silueta                    # Clean silhouette extraction
+# - sam                        # Segment Anything Model integration
+#
+# Model Selection Guide:
+# - For photos of people: u2net_human_seg or birefnet-portrait
+# - For anime/illustrations: isnet-anime
+# - For general images: u2net or birefnet-general
+# - For clothing/fashion: u2net_cloth_seg
+# - For clean silhouettes: silueta

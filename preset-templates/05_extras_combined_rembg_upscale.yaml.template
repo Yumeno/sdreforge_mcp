@@ -1,24 +1,46 @@
-# (05) Extras Combined RemBG + Upscale
+# ================================================================================================
+# (05) Combined Background Removal + Upscaling Preset
+# ================================================================================================
+#
+# This preset combines background removal and upscaling in a single operation.
+# Efficient workflow for preparing images with transparent backgrounds at higher resolution.
+#
+# ================================================================================================
+# COMBINED PROCESS:
+# ================================================================================================
+# Input image → Background removal → Upscaling → Final RGBA output
+# Both operations use their respective AI models for optimal quality.
+#
+# To skip either operation: set rembg_model="none" or upscaler_1="none"
+# To run only one operation: use the dedicated presets instead
+#
+# ================================================================================================
+
 name: extras_combined_rembg_upscale
 type: extras_combined
 description: "Combined background removal + upscaling - set either to 'none' to skip that operation"
 
 settings:
-  # RemBG settings
-  rembg_model: "u2net"  # u2net, isnet-anime, silueta
-  return_mask: false
-  alpha_matting: false
-  alpha_matting_foreground_threshold: 270
-  alpha_matting_background_threshold: 10
-  alpha_matting_erode_size: 10
+  # RemBG settings - Background removal
+  rembg_model: "{{REMBG_DEFAULT_MODEL}}"          # AI model for background detection
+  return_mask: false            # Output RGBA image with transparent background
+  alpha_matting: {{REMBG_DEFAULT_ALPHA_MATTING}}  # Edge refinement for complex subjects
+  alpha_matting_foreground_threshold: 240  # Foreground detection sensitivity
+  alpha_matting_background_threshold: 50   # Background detection sensitivity
+  alpha_matting_erode_size: 10             # Edge erosion for clean separation
 
-  # Upscaling settings
-  upscaling_resize: 2
-  upscaler_1: "R-ESRGAN 4x+ Anime6B"
-  upscaler_2: "None"
-  extras_upscaler_2_visibility: 0
+  # Upscale settings - Resolution enhancement
+  upscaler_1: "{{UPSCALER_DEFAULT_MODEL}}"   # AI upscaler model
+  upscaling_resize: {{UPSCALER_DEFAULT_SCALE}}  # Scale multiplication factor
 
-  # Common settings
-  gfpgan_visibility: 0
-  codeformer_visibility: 0
-  codeformer_weight: 0
+  # Optional secondary upscaler
+  upscaler_2: "None"            # Secondary upscaler for blending
+  extras_upscaler_2_visibility: 0  # Blend ratio (0=primary only)
+
+  # Face restoration (optional)
+  gfpgan_visibility: 0          # GFPGAN face restoration strength
+  codeformer_visibility: 0      # CodeFormer face restoration strength
+  codeformer_weight: 0          # CodeFormer fidelity balance
+
+  # Processing order
+  upscale_first: false          # Process order: false=remove bg→upscale, true=upscale→remove bg

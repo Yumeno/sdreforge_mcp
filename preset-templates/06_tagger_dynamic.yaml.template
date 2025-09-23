@@ -1,43 +1,68 @@
-# Dynamic Tagger - Model Selection Available
+# ================================================================================================
+# (06) Image Tagging Dynamic Preset - AI-Powered Tag Generation
+# ================================================================================================
+#
+# This preset analyzes images and generates descriptive tags or natural language descriptions.
+# Useful for creating prompts from existing images or analyzing content.
+#
+# ================================================================================================
+# TAGGING PROCESS:
+# ================================================================================================
+# Input image → AI model analysis → Tag extraction → Formatted output
+# threshold: Controls confidence level (lower = more tags, higher = only confident tags)
+# replace_underscore: Converts "blue_eyes" to "blue eyes" for readability
+#
+# Model Types:
+# - WD (Waifu Diffusion): Anime/illustration tags in Danbooru format
+# - BLIP: Natural language descriptions
+# - CLIP: General image descriptions
+#
+# ================================================================================================
+
 name: tagger_dynamic
 type: tagger
 description: "Auto-generate image tags/prompts using WD14, BLIP or other tagger models"
 
 settings:
-  # Dynamic model selection - user can override
-  model: "{{TAGGER_DEFAULT_MODEL}}"    # Options: see available models below
+  # Model selection - Determines output format and accuracy
+  model: "{{TAGGER_DEFAULT_MODEL}}"    # AI model for tag generation
 
-  # Tagging parameters
-  threshold: {{TAGGER_DEFAULT_THRESHOLD}}                # Confidence threshold (0-1)
-  exclude_tags: ""               # Tags to exclude (comma separated)
+  # Tagging parameters - Control output quality and quantity
+  threshold: {{TAGGER_DEFAULT_THRESHOLD}}  # Confidence threshold (0-1, lower=more tags)
+  exclude_tags: ""               # Comma-separated tags to remove from output
 
-  # Tag formatting
-  replace_underscore: {{TAGGER_DEFAULT_REPLACE_UNDERSCORE}}       # Replace underscores with spaces
-  replace_underscore_excludes: "" # Tags to exclude from underscore replacement
-  escape_tag: false              # Escape special characters
+  # Tag formatting - Output appearance
+  replace_underscore: {{TAGGER_DEFAULT_REPLACE_UNDERSCORE}}  # Convert underscores to spaces
+  replace_underscore_excludes: "" # Tags to keep underscores (e.g., "1girl,solo")
+  escape_tag: false              # Escape special characters for prompts
 
-  # Performance
-  unload_model_after_running: {{TAGGER_DEFAULT_UNLOAD_MODEL}}  # Unload model after use to save VRAM
+  # Performance - Memory management
+  unload_model_after_running: {{TAGGER_DEFAULT_UNLOAD_MODEL}}  # Free VRAM after use
 
-# Available tagger models (for reference):
-# Waifu Diffusion models:
-# - wd-EVA02-Large-v3 (Latest, best quality)
-# - wd-v1-4-swinv2-tagger-v2
-# - wd-v1-4-convnext-tagger-v2
-# - wd-v1-4-vit-tagger-v2
-# - wd-v1-4-moat-tagger-v2
-
-# DeepDanbooru:
-# - deepdanbooru (Classic anime tagger)
-
-# Z3D models:
-# - Z3D-E621-Convnext (E621 dataset)
-
-# ML Danbooru:
-# - ml-danbooru-wd-v1-4-vit-tagger-v2
-# - ml-danbooru-caformer-dec-5-97527
-
-# Specialized models:
-# - GFPGAN (Face detection)
-# - clip-vit-base-patch32 (CLIP model)
-# - clip-vit-large-patch14 (CLIP large)
+# ================================================================================================
+# AVAILABLE TAGGER MODELS:
+# ================================================================================================
+# Waifu Diffusion Models (Anime/Illustration - Danbooru tags):
+# - wd-EVA02-Large-v3          # Latest, highest quality for anime/illustrations
+# - wd-v1-4-swinv2-tagger-v2   # Stable legacy model
+# - wd-v1-4-convnext-tagger-v2 # Alternative architecture
+# - wd-v1-4-vit-tagger-v2      # Vision Transformer based
+#
+# Natural Language Models:
+# - BLIP-2                     # Advanced natural language descriptions
+# - BLIP                       # Basic natural language descriptions
+#
+# General Purpose Models:
+# - clip-interrogator          # CLIP-based general descriptions
+# - deepdanbooru               # Legacy anime tagging
+#
+# Model Selection Guide:
+# - For anime/illustrations: wd-EVA02-Large-v3 (recommended)
+# - For natural descriptions: BLIP-2
+# - For general images: clip-interrogator
+# - For legacy compatibility: wd-v1-4-swinv2-tagger-v2
+#
+# Threshold Guide:
+# - 0.35: Balanced (recommended)
+# - 0.25: More tags, some false positives
+# - 0.50: Conservative, only confident tags
