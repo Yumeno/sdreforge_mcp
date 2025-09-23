@@ -53,29 +53,69 @@ MCP (Model Context Protocol) server for SD WebUI Reforge integration with Claude
 
 ## 🛠️ インストール
 
-### システム要件
+### 前提条件
+- **Node.js**: 18以上
+- **SD WebUI Reforge**: APIモード対応版（`--api --listen`フラグ必須）
 
-- **Node.js**: 16.0.0以上（推奨: 18.0.0以上）
-- **npm**: 8.0.0以上
-- **対応OS**: Windows 10+, macOS 10.15+, Ubuntu 18.04+
-- **SD WebUI Reforge**: APIモード対応版
-
-### セットアップ
-
+### 1. リポジトリクローン
 ```bash
-# リポジトリをクローン
 git clone https://github.com/Yumeno/sdreforge_mcp.git
 cd sdreforge_mcp
-
-# 依存関係をインストール
 npm install
+```
 
-# ビルド
+### 2. 環境設定（重要）
+```bash
+# サンプル.envファイルを生成
+npm run setup:presets:sample
+
+# .envファイルを編集してください（必須）
+# - SDAPI_URL: SD WebUI ReforgeのAPIエンドポイント
+# - DEFAULT_MODEL: 使用するモデル名
+# - その他の設定
+```
+
+**重要**: .envファイルの編集は必須です。以下の項目を環境に合わせて変更してください：
+- `SDAPI_URL`: SD WebUI ReforgeのAPIエンドポイント（例: `http://localhost:7860`）
+- `DEFAULT_MODEL`: デフォルトモデル名（例: `sd_animagineXL40_v4Opt`）
+- その他の環境依存設定
+
+**環境依存設定の例**:
+```env
+# 例1: ローカル開発環境
+SDAPI_URL=http://localhost:7860
+DEFAULT_MODEL=sd_animagineXL40_v4Opt
+
+# 例2: リモートサーバー
+SDAPI_URL=http://192.168.1.100:7860
+DEFAULT_MODEL=realisticVisionV51_v51VAE
+```
+
+### 3. プリセット構築
+```bash
+# インタラクティブセットアップ（推奨）
+npm run setup:presets:interactive
+
+# または自動セットアップ
+npm run setup:presets
+
+# 既存プリセットを強制上書き
+npm run setup:presets:force
+```
+
+### 4. 動作確認
+```bash
+# 設定検証
+npm run setup:presets:validate
+
+# 接続テスト
+npm test
+```
+
+### 5. 起動
+```bash
 npm run build
-
-# 環境設定ファイルを作成
-cp .env.sample .env
-# .envを編集してSD WebUIのURLを設定
+npm start
 ```
 
 ## 🔧 Claude Codeへの設定
@@ -175,6 +215,70 @@ Mac/Linux: `~/.config/Claude/claude_desktop_config.json`
 - `sdreforge_utility_adetailer_models` - ADetailer モデル一覧
 - `sdreforge_utility_tagger_models` - Tagger モデル一覧
 - `sdreforge_utility_rembg_models` - RemBG モデル一覧
+
+## 📋 CLI オプション
+
+### セットアップ関連
+```bash
+npm run setup:presets                    # 基本セットアップ
+npm run setup:presets:interactive        # インタラクティブセットアップ（推奨）
+npm run setup:presets:quick             # クイックセットアップ（サンプル生成→セットアップ）
+npm run setup:presets:validate          # 設定検証のみ
+npm run setup:presets:sample            # サンプル.envファイル生成
+npm run setup:presets:force             # 既存プリセットを強制上書き
+```
+
+### マイグレーション関連
+```bash
+npm run migrate:presets                  # 既存プリセットのマイグレーション
+npm run migrate:presets:report          # マイグレーション分析レポート
+npm run migrate:presets:dry-run          # 変更内容のプレビュー（実際の変更なし）
+```
+
+### 開発・テスト関連
+```bash
+npm run build                           # TypeScriptビルド
+npm run dev                             # 開発モード（ファイル監視）
+npm start                              # 本番モード起動
+npm test                               # テスト実行
+npm run test:watch                     # テスト監視モード
+npm run test:coverage                  # カバレッジ付きテスト
+npm run lint                           # ESLintによるコード検査
+npm run format                         # Prettierによるコード整形
+```
+
+### CLI オプション詳細
+
+#### インタラクティブモード
+```bash
+npm run setup:presets:interactive
+```
+- 対話式で設定項目を選択
+- 既存プリセットの処理方法を選択（上書き/保持/スキップ）
+- 設定値のリアルタイム検証
+- 推奨設定の提案
+
+#### 検証モード
+```bash
+npm run setup:presets:validate
+```
+- .envファイルの構文チェック
+- 必須項目の存在確認
+- テンプレート変数の整合性確認
+- SD WebUI Reforge接続テスト
+
+#### マイグレーション
+```bash
+npm run migrate:presets:report
+```
+出力例：
+```
+📊 マイグレーション分析レポート
+- 非推奨プリセット: 26個 → deprecated/へ移動
+- 動的プリセット: 2個 → 保持
+- ユーティリティ: 16個 → 保持
+- 合計削減: 24個のファイル
+```
 
 ## 🎯 クイックスタート
 
