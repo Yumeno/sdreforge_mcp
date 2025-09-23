@@ -26,3 +26,12 @@ npm-debug.log*
 # Temporary files
 *.tmp
 *.temp
+
+# Generated presets (Option A: templates-only repository)
+presets/*.yaml
+!preset-templates/*.template
+
+# Deprecated/temporary folders
+presets/deprecated/
+presets/default/
+presets/templates/

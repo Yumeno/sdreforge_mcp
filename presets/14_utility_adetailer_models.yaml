@@ -1,7 +1,0 @@
-# (14) Utility ADetailer Models
-name: utility_adetailer_models
-type: utility
-description: "Get list of available ADetailer detection models"
-
-settings:
-  action: "adetailer_models"

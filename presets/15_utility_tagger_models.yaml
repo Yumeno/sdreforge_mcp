@@ -1,7 +1,0 @@
-# (15) Utility Tagger Models
-name: utility_tagger_models
-type: utility
-description: "Get list of available Tagger models"
-
-settings:
-  action: "tagger_models"

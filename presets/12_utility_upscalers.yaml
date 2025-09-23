@@ -1,7 +1,0 @@
-# (12) Utility Upscalers
-name: utility_upscalers
-type: utility
-description: "Get list of available upscaler models"
-
-settings:
-  action: "upscalers"

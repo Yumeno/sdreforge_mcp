@@ -1,7 +1,0 @@
-# (07) Utility PNG Info
-name: utility_png_info
-type: utility
-description: "Extract generation parameters from PNG metadata"
-
-settings:
-  action: "png_info"
