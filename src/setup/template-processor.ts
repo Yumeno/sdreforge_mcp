@@ -202,6 +202,7 @@ export class TemplateProcessor {
   public generateSampleEnv(templateDir: string, outputPath: string): void {
     const variables = this.extractAllVariables(templateDir);
     const defaultValues: { [key: string]: string } = {
+      'SD_WEBUI_URL': 'http://localhost:7860',
       'DEFAULT_CHECKPOINT': 'sd_animagineXL40_v4Opt',
       'DEFAULT_SAMPLER': 'Euler a',
       'DEFAULT_SCHEDULER': 'Automatic',
@@ -213,18 +214,18 @@ export class TemplateProcessor {
       'POSITIVE_SUFFIX': 'masterpiece, high score, great score, absurdres',
       'NEGATIVE_BASE': 'lowres, bad anatomy, bad hands, text, error, missing finger, extra digits, fewer digits, cropped, worst quality, low quality, low score, bad score, average score, signature, watermark, username, blurry',
       'HIRES_DEFAULT_SCALE': '2.0',
-      'HIRES_DEFAULT_UPSCALER': '4x_fatal_Anime_500000_G',
+      'HIRES_DEFAULT_UPSCALER': 'R-ESRGAN 4x+ Anime6B',
       'IMG2IMG_DEFAULT_DENOISING_STRENGTH': '0.5',
       'CONTROLNET_MAX_UNITS': '3',
       'ADETAILER_MAX_MODELS': '2',
       'RP_DEFAULT_MODE': 'Matrix',
       'RP_DEFAULT_BASE_RATIO': '0.2',
       'RP_DEFAULT_CALC_MODE': 'Attention',
-      'UPSCALER_DEFAULT_MODEL': '4x-UltraSharp',
+      'UPSCALER_DEFAULT_MODEL': 'R-ESRGAN 4x+ Anime6B',
       'UPSCALER_DEFAULT_SCALE': '2',
-      'REMBG_DEFAULT_MODEL': 'u2net',
+      'REMBG_DEFAULT_MODEL': 'isnet-anime',
       'REMBG_DEFAULT_ALPHA_MATTING': 'true',
-      'TAGGER_DEFAULT_MODEL': 'wd-EVA02-Large-v3',
+      'TAGGER_DEFAULT_MODEL': 'wd-v1-4-moat-tagger-v2',
       'TAGGER_DEFAULT_THRESHOLD': '0.35',
       'TAGGER_DEFAULT_REPLACE_UNDERSCORE': 'true',
       'TAGGER_DEFAULT_UNLOAD_MODEL': 'false'

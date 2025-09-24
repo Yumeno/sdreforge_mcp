@@ -139,10 +139,7 @@ Mac/Linux: `~/.config/Claude/claude_desktop_config.json`
   "mcpServers": {
     "sdreforge": {
       "command": "npx",
-      "args": ["-y", "tsx", "C:\\path\\to\\sdreforge_mcp\\src\\index.ts"],
-      "env": {
-        "SD_WEBUI_URL": "http://localhost:7860"
-      }
+      "args": ["-y", "tsx", "C:\\Users\\vz7a-\\Desktop\\kamuicode\\kamuicode_20250811\\sdreforge_mcp\\src\\index.ts"]
     }
   }
 }
@@ -154,10 +151,7 @@ Mac/Linux: `~/.config/Claude/claude_desktop_config.json`
   "mcpServers": {
     "sdreforge": {
       "command": "node",
-      "args": ["C:\\path\\to\\sdreforge_mcp\\dist\\index.js"],
-      "env": {
-        "SD_WEBUI_URL": "http://localhost:7860"
-      }
+      "args": ["C:\\Users\\vz7a-\\Desktop\\kamuicode\\kamuicode_20250811\\sdreforge_mcp\\dist\\index.js"]
     }
   }
 }
@@ -165,7 +159,8 @@ Mac/Linux: `~/.config/Claude/claude_desktop_config.json`
 
 #### パスをご自身の環境に合わせて変更してください：
 - `args`のパス: プロジェクトの`src/index.ts`または`dist/index.js`へのフルパス
-- `SD_WEBUI_URL`: お使いのSD WebUI ReforgeサーバーのURL
+
+**注意**: SD_WEBUI_URLは`.env`ファイルで設定してください。MCPサーバー設定での環境変数指定は不要です。
 
 ### 3. 複数サーバーがある場合の設定例
 
@@ -174,15 +169,11 @@ Mac/Linux: `~/.config/Claude/claude_desktop_config.json`
   "mcpServers": {
     "sdreforge": {
       "command": "npx",
-      "args": ["-y", "tsx", "C:\\path\\to\\sdreforge_mcp\\src\\index.ts"],
-      "env": {
-        "SD_WEBUI_URL": "http://localhost:7860"
-      }
+      "args": ["-y", "tsx", "C:\\Users\\vz7a-\\Desktop\\kamuicode\\kamuicode_20250811\\sdreforge_mcp\\src\\index.ts"]
     },
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "C:\\path\\to\\workspace"],
-      "env": {}
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "C:\\path\\to\\workspace"]
     }
   }
 }

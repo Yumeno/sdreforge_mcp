@@ -1575,16 +1575,10 @@ export class MCPServer {
 
         // Use original PNG info if available, otherwise extract from htmlInfo
         let originalParameters = htmlInfo;
-        let existingPostprocessing = '';
 
         if (originalPngInfo?.info) {
           // Use the original PNG info as parameters
           originalParameters = originalPngInfo.info;
-
-          // Get existing postprocessing info from original image
-          if (originalPngInfo.items?.postprocessing) {
-            existingPostprocessing = originalPngInfo.items.postprocessing;
-          }
         }
 
         // Extract new postprocessing info from current htmlInfo
