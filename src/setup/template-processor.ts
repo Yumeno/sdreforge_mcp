@@ -195,6 +195,9 @@ export class TemplateProcessor {
 
   /**
    * Generate a sample .env file with all required variables
+   * @deprecated This method is deprecated. Use static .env.sample file instead.
+   * The .env.sample file is now maintained manually with comprehensive comments
+   * and up-to-date default values to prevent configuration overwrites.
    */
   public generateSampleEnv(templateDir: string, outputPath: string): void {
     const variables = this.extractAllVariables(templateDir);

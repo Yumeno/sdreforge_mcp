@@ -66,8 +66,12 @@ npm install
 
 ### 2. 環境設定（重要）
 ```bash
-# サンプル.envファイルを生成
-npm run setup:presets:sample
+# .env.sampleを.envにコピー（Windows）
+copy .env.sample .env
+# または（PowerShell）
+Copy-Item .env.sample .env
+# または（Linux/macOS）
+cp .env.sample .env
 
 # .envファイルを編集してください（必須）
 # - SDAPI_URL: SD WebUI ReforgeのAPIエンドポイント
@@ -222,9 +226,8 @@ Mac/Linux: `~/.config/Claude/claude_desktop_config.json`
 ```bash
 npm run setup:presets                    # 基本セットアップ
 npm run setup:presets:interactive        # インタラクティブセットアップ（推奨）
-npm run setup:presets:quick             # クイックセットアップ（サンプル生成→セットアップ）
+npm run setup:presets:quick             # クイックセットアップ
 npm run setup:presets:validate          # 設定検証のみ
-npm run setup:presets:sample            # サンプル.envファイル生成
 npm run setup:presets:force             # 既存プリセットを強制上書き
 ```
 
@@ -987,8 +990,9 @@ Issues、Pull Requestsは歓迎します。開発はTDDで行っているため�
 #### 1. 設定ファイルの準備
 
 ```bash
-# サンプル環境ファイルの生成
-npm run setup:presets:sample
+# .envファイルの準備
+cp .env.sample .env  # Linux/macOS
+copy .env.sample .env  # Windows
 ```
 
 **設定ファイルのコピー:**
@@ -1055,7 +1059,6 @@ npm run build
 npm run setup:presets                 # 自動セットアップ
 npm run setup:presets:interactive     # インタラクティブモード
 npm run setup:presets:validate        # 設定検証
-npm run setup:presets:sample          # サンプル.env生成
 
 # マイグレーション関連
 npm run migrate:presets               # 既存プリセットの整理
@@ -1138,8 +1141,9 @@ UPSCALER_DEFAULT_SCALE=4
 # 不足している変数を確認
 npm run setup:presets:validate
 
-# サンプルファイルを再生成
-npm run setup:presets:sample
+# .envファイルをリセット
+cp .env.sample .env  # Linux/macOS
+copy .env.sample .env  # Windows
 ```
 
 **テンプレート処理エラー:**

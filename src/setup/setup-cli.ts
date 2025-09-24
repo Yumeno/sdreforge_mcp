@@ -51,11 +51,9 @@ class SetupCLI {
   }
 
   private async generateSampleEnv(): Promise<void> {
-    const outputPath = path.join(process.cwd(), '.env.sample');
-    this.templateProcessor.generateSampleEnv(this.templateDir, outputPath);
-    console.log('✅ Sample environment file generated successfully!');
-    console.log(`📄 Generated: ${outputPath}`);
-    console.log('\n📋 Next steps:');
+    console.log('⚠️  WARNING: The --generate-sample option is deprecated!');
+    console.log('');
+    console.log('📋 Recommended approach:');
 
     const platform = process.platform;
     if (platform === 'win32') {
@@ -67,6 +65,12 @@ class SetupCLI {
 
     console.log('   Then customize the .env file with your preferences');
     console.log('   Run: npm run setup:presets');
+    console.log('');
+    console.log('💡 The .env.sample file is now maintained as a static file with');
+    console.log('   comprehensive comments and up-to-date default values.');
+    console.log('   This prevents configuration from being overwritten.');
+
+    return;
   }
 
   private async validateOnly(): Promise<void> {
