@@ -48,7 +48,7 @@ export class PresetManager {
 
     try {
       // Write debug to file for debugging
-      const logPath = path.join(process.cwd(), 'mcp-debug.log');
+      const logPath = path.join(globalThis.mcpDir, 'mcp-debug.log');
       const debugLog = `[DEBUG ${new Date().toISOString()}] Loading presets from: ${this.presetsDir}\n`;
       fs.appendFileSync(logPath, debugLog);
       const files = fs.readdirSync(this.presetsDir);
@@ -71,13 +71,13 @@ export class PresetManager {
         }
 
         try {
-          const logPath2 = path.join(process.cwd(), 'mcp-debug.log');
+          const logPath2 = path.join(globalThis.mcpDir, 'mcp-debug.log');
           fs.appendFileSync(logPath2, `[DEBUG ${new Date().toISOString()}] Loading preset: ${file}\n`);
           const preset = this.loadPreset(file);
           fs.appendFileSync(logPath2, `[DEBUG ${new Date().toISOString()}] Successfully loaded preset: ${preset.name} (type: ${preset.type})\n`);
           presets.push(preset);
         } catch (error: any) {
-          const logPath2 = path.join(process.cwd(), 'mcp-debug.log');
+          const logPath2 = path.join(globalThis.mcpDir, 'mcp-debug.log');
           fs.appendFileSync(logPath2, `[ERROR ${new Date().toISOString()}] Failed to load preset ${file}: ${error.message}\n`);
         }
       }
@@ -152,13 +152,28 @@ export class PresetManager {
     };
 
     // Apply prompt template with complete config aggregation
-    if (preset.prompt_template && userParams.prompt) {
+    // Check base_settings for prompt_suffix/prefix (actual preset structure) or prompt_template (legacy/future support)
+    const debugLogPath = path.join(globalThis.mcpDir, 'mcp-tool-execution.log');
+    fs.appendFileSync(debugLogPath, `[PAYLOAD_DEBUG] userParams: ${JSON.stringify(userParams, null, 2)}\n`);
+    fs.appendFileSync(debugLogPath, `[PAYLOAD_DEBUG] userParams.prompt: ${userParams.prompt}\n`);
+    fs.appendFileSync(debugLogPath, `[PAYLOAD_DEBUG] Has prompt: ${!!userParams.prompt}\n`);
+
+    if (userParams.prompt) {
       // Override template with user-provided values if specified
+      // First check base_settings (where actual presets store these), then fall back to prompt_template if it exists
       const effectiveTemplate = {
-        positive_prefix: userParams.prompt_prefix ?? preset.prompt_template.positive_prefix,
-        positive_suffix: userParams.prompt_suffix ?? preset.prompt_template.positive_suffix,
-        negative: userParams.negative_prompt_base ?? preset.prompt_template.negative
+        positive_prefix: userParams.prompt_prefix ?? preset.base_settings?.prompt_prefix ?? preset.prompt_template?.positive_prefix ?? '',
+        positive_suffix: userParams.prompt_suffix ?? preset.base_settings?.prompt_suffix ?? preset.prompt_template?.positive_suffix ?? '',
+        negative: userParams.negative_prompt_base ?? preset.base_settings?.negative_prompt ?? preset.prompt_template?.negative ?? ''
       };
+
+      // DEBUG: Log template resolution
+      const debugLogPath = path.join(globalThis.mcpDir, 'mcp-tool-execution.log');
+      fs.appendFileSync(debugLogPath, `[PRESET_DEBUG] preset.name: ${preset.name}\n`);
+      fs.appendFileSync(debugLogPath, `[PRESET_DEBUG] preset.base_settings: ${JSON.stringify(preset.base_settings, null, 2)}\n`);
+      fs.appendFileSync(debugLogPath, `[PRESET_DEBUG] preset.base_settings?.prompt_suffix: ${preset.base_settings?.prompt_suffix}\n`);
+      fs.appendFileSync(debugLogPath, `[PRESET_DEBUG] effectiveTemplate: ${JSON.stringify(effectiveTemplate)}\n`);
+      fs.appendFileSync(debugLogPath, `[PRESET_DEBUG] userParams.prompt: ${userParams.prompt}\n`);
 
       // Aggregate complete Regional Prompter configuration (defaults + user overrides)
       const finalRpConfig = {
