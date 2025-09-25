@@ -16,6 +16,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
 
+// Global type declaration for mcpDir
+declare global {
+  var mcpDir: string;
+}
+
 // Load environment variables BEFORE class initialization
 // MCP_DIR環境変数を優先的に使用し、フォールバック処理も実装
 const mcpDir = process.env.MCP_DIR || (() => {
@@ -31,6 +36,9 @@ const mcpDir = process.env.MCP_DIR || (() => {
   // 最終的なフォールバック（ビルド済みの場合）
   return path.resolve(__dirname, '../..');
 })();
+
+// Make mcpDir globally accessible
+(globalThis as any).mcpDir = mcpDir;
 
 // .envファイルの読み込み
 const envPath = path.join(mcpDir, '.env');
@@ -141,7 +149,7 @@ export class MCPServer {
    * Combine multiple black & white masks into a single colored mask for Regional Prompter
    */
   async combineMasks(maskPaths: string[]): Promise<string> {
-    const debugLogPath = path.join(process.cwd(), 'mcp-tool-execution.log');
+    const debugLogPath = path.join(globalThis.mcpDir, 'mcp-tool-execution.log');
 
     if (!maskPaths || maskPaths.length === 0) {
       throw new Error('No mask paths provided');
@@ -251,7 +259,11 @@ export class MCPServer {
       }
 
       // Save combined mask for debugging
-      const debugMaskPath = path.join(process.cwd(), 'output', `combined_mask_${Date.now()}.png`);
+      const outputDir = path.join(globalThis.mcpDir, 'output');
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+      }
+      const debugMaskPath = path.join(outputDir, `combined_mask_${Date.now()}.png`);
       await combined.write(debugMaskPath);
       fs.appendFileSync(debugLogPath, `Saved combined mask to: ${debugMaskPath}\n`);
 
@@ -272,7 +284,7 @@ export class MCPServer {
   async executeTool(toolName: string, params: any): Promise<ToolExecutionResult> {
     try {
       // Debug: Log all received parameters to file
-      const debugLogPath = path.join(process.cwd(), 'mcp-tool-execution.log');
+      const debugLogPath = path.join(globalThis.mcpDir, 'mcp-tool-execution.log');
       const logEntry = `[${new Date().toISOString()}] Tool: ${toolName}\nParams: ${JSON.stringify(params, null, 2)}\n---\n`;
       fs.appendFileSync(debugLogPath, logEntry);
 
@@ -298,7 +310,13 @@ export class MCPServer {
       // }
 
       // Generate payload from preset and user params
+      const debugPath = path.join(globalThis.mcpDir, 'mcp-tool-execution.log');
+      fs.appendFileSync(debugPath, `[MCP_DEBUG] About to call presetToPayload with preset.name: ${preset.name}\n`);
+      fs.appendFileSync(debugPath, `[MCP_DEBUG] User params: ${JSON.stringify(params, null, 2)}\n`);
+
       const payload = this.toolGenerator.getPresetManager().presetToPayload(preset, params);
+
+      fs.appendFileSync(debugPath, `[MCP_DEBUG] Generated payload: ${JSON.stringify(payload, null, 2)}\n`);
 
       // Special handling for img2img - process file paths BEFORE switch statement
       if (preset.type === 'img2img') {
@@ -811,7 +829,7 @@ export class MCPServer {
       switch (preset.type) {
         case 'txt2img':
           // Comprehensive payload logging before API call
-          const payloadLogPath = path.join(process.cwd(), 'payload-debug.log');
+          const payloadLogPath = path.join(globalThis.mcpDir, 'payload-debug.log');
           const timestamp = new Date().toISOString();
           fs.appendFileSync(payloadLogPath, `\n========== txt2img API Call at ${timestamp} ==========\n`);
           fs.appendFileSync(payloadLogPath, `Preset: ${presetName}\n`);
@@ -1180,7 +1198,7 @@ export class MCPServer {
                 const resolvedPath = path.resolve(imagePath);
                 if (fs.existsSync(resolvedPath)) {
                   fileBuffer = fs.readFileSync(resolvedPath);
-                  imageData = `data:image/png;base64,${fileBuffer.toString('base64')}`;
+                  imageData = `data:image/png;base64,${fileBuffer!.toString('base64')}`;
                 } else {
                   return {
                     success: false,
