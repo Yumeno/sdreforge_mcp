@@ -134,33 +134,79 @@ Mac/Linux: `~/.config/Claude/claude_desktop_config.json`
 以下の設定を`claude_desktop_config.json`に追加します：
 
 #### 方法1: npxを使用（推奨）
+
+**Windows:**
 ```json
 {
   "mcpServers": {
     "sdreforge": {
       "command": "npx",
-      "args": ["-y", "tsx", "C:\\Users\\vz7a-\\Desktop\\kamuicode\\kamuicode_20250811\\sdreforge_mcp\\src\\index.ts"]
+      "args": ["-y", "tsx", "C:\\path\\to\\sdreforge_mcp\\src\\index.ts"],
+      "env": {
+        "MCP_DIR": "C:\\path\\to\\sdreforge_mcp"
+      }
+    }
+  }
+}
+```
+
+**Mac/Linux:**
+```json
+{
+  "mcpServers": {
+    "sdreforge": {
+      "command": "npx",
+      "args": ["-y", "tsx", "/path/to/sdreforge_mcp/src/index.ts"],
+      "env": {
+        "MCP_DIR": "/path/to/sdreforge_mcp"
+      }
     }
   }
 }
 ```
 
 #### 方法2: ビルド済みファイルを使用
+
+**Windows:**
 ```json
 {
   "mcpServers": {
     "sdreforge": {
       "command": "node",
-      "args": ["C:\\Users\\vz7a-\\Desktop\\kamuicode\\kamuicode_20250811\\sdreforge_mcp\\dist\\index.js"]
+      "args": ["C:\\path\\to\\sdreforge_mcp\\dist\\index.js"],
+      "env": {
+        "MCP_DIR": "C:\\path\\to\\sdreforge_mcp"
+      }
+    }
+  }
+}
+```
+
+**Mac/Linux:**
+```json
+{
+  "mcpServers": {
+    "sdreforge": {
+      "command": "node",
+      "args": ["/path/to/sdreforge_mcp/dist/index.js"],
+      "env": {
+        "MCP_DIR": "/path/to/sdreforge_mcp"
+      }
     }
   }
 }
 ```
 
 #### パスをご自身の環境に合わせて変更してください：
+- **Windows**: `C:\path\to\sdreforge_mcp` 形式
+- **Mac/Linux**: `/path/to/sdreforge_mcp` 形式
 - `args`のパス: プロジェクトの`src/index.ts`または`dist/index.js`へのフルパス
+- `env.MCP_DIR`: プロジェクトのルートディレクトリへのフルパス
 
-**注意**: SD_WEBUI_URLは`.env`ファイルで設定してください。MCPサーバー設定での環境変数指定は不要です。
+**重要**: `MCP_DIR`環境変数の設定は必須です。これにより以下が可能になります：
+- `.env`ファイルの自動検出とSD_WEBUI_URL設定の読み込み
+- ログファイル（mcp-debug.log等）の適切な出力先制御
+- プリセットファイルの正しいパス解決
 
 ### 3. 複数サーバーがある場合の設定例
 
@@ -169,7 +215,7 @@ Mac/Linux: `~/.config/Claude/claude_desktop_config.json`
   "mcpServers": {
     "sdreforge": {
       "command": "npx",
-      "args": ["-y", "tsx", "C:\\Users\\vz7a-\\Desktop\\kamuicode\\kamuicode_20250811\\sdreforge_mcp\\src\\index.ts"]
+      "args": ["-y", "tsx", "C:\\path\\to\\sdreforge_mcp\\src\\index.ts"]
     },
     "filesystem": {
       "command": "npx",
