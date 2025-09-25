@@ -14,6 +14,34 @@ import { ToolGenerator } from './tool-generator';
 import { ServerConfig, ToolExecutionResult } from './types';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as dotenv from 'dotenv';
+
+// Load environment variables BEFORE class initialization
+// MCP_DIR環境変数を優先的に使用し、フォールバック処理も実装
+const mcpDir = process.env.MCP_DIR || (() => {
+  // MCP_DIRが未設定の場合の自動検出
+  const cwd = process.cwd();
+  const pathSegments = cwd.split(path.sep);
+  const sdreforgeIndex = pathSegments.indexOf('sdreforge_mcp');
+
+  if (sdreforgeIndex !== -1) {
+    return pathSegments.slice(0, sdreforgeIndex + 1).join(path.sep);
+  }
+
+  // 最終的なフォールバック（ビルド済みの場合）
+  return path.resolve(__dirname, '../..');
+})();
+
+// .envファイルの読み込み
+const envPath = path.join(mcpDir, '.env');
+if (fs.existsSync(envPath)) {
+  dotenv.config({ path: envPath });
+}
+
+const envLocalPath = path.join(mcpDir, '.env.local');
+if (fs.existsSync(envLocalPath)) {
+  dotenv.config({ path: envLocalPath });
+}
 const { Jimp } = require('jimp');
 const { intToRGBA, rgbaToInt } = require('@jimp/utils');
 
@@ -26,7 +54,7 @@ export class MCPServer {
 
   constructor(config: ServerConfig = {}) {
     this.config = {
-      presetsDir: config.presetsDir ?? path.join(__dirname, '../../presets'),
+      presetsDir: config.presetsDir ?? path.join(mcpDir, 'presets'),
       apiUrl: config.apiUrl ?? process.env.SD_WEBUI_URL,
       serverName: config.serverName ?? 'sdreforge-mcp',
       serverVersion: config.serverVersion ?? '0.1.0',

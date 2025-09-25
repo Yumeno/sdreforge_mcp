@@ -4,9 +4,6 @@
  */
 
 import axios, { AxiosInstance, AxiosError } from 'axios';
-import * as dotenv from 'dotenv';
-import * as path from 'path';
-import * as fs from 'fs';
 import {
   ValidationError,
   Txt2ImgPayload,
@@ -20,13 +17,6 @@ import {
   TaggerPayload,
   TaggerResponse,
 } from './types';
-
-// Load environment variables
-const envPath = path.resolve(process.cwd(), '.env.local');
-if (fs.existsSync(envPath)) {
-  dotenv.config({ path: envPath });
-}
-dotenv.config(); // Also load .env
 
 export class SDWebUIClient {
   public readonly baseUrl: string;
