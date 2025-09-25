@@ -33,18 +33,12 @@ export class PromptHandler {
     // Build positive prompt
     const parts: string[] = [];
 
-    if (template.positive_prefix) {
-      parts.push(template.positive_prefix);
-    }
+    // undefined を空文字として扱い、全て追加
+    parts.push(template.positive_prefix || '');
+    parts.push(userPrompt || '');
+    parts.push(template.positive_suffix || '');
 
-    if (userPrompt) {
-      parts.push(userPrompt);
-    }
-
-    if (template.positive_suffix) {
-      parts.push(template.positive_suffix);
-    }
-
+    // 空文字を除外してカンマで結合
     const prompt = parts.filter(p => p).join(', ');
 
     // Return with negative prompt if specified
@@ -121,10 +115,10 @@ export class PromptHandler {
         // (ii) Always apply prefix/suffix to first chunk
         const firstChunk = chunks[0].trim();
         const wrappedFirstChunk = [
-          template.positive_prefix,
+          template.positive_prefix || '',
           firstChunk,
-          template.positive_suffix
-        ].filter(p => p?.trim()).join(', ');
+          template.positive_suffix || ''
+        ].filter(p => p).join(', ');
 
         // Replace first chunk with wrapped version - use safer string replacement
         processedPrompt = processedPrompt.replace(firstChunk.trim(), wrappedFirstChunk);
@@ -164,10 +158,10 @@ export class PromptHandler {
           chunks.slice(1).forEach((chunk, index) => {
             const trimmedChunk = chunk.trim();
             const wrappedChunk = [
-              template.positive_prefix,
+              template.positive_prefix || '',
               trimmedChunk,
-              template.positive_suffix
-            ].filter(p => p?.trim()).join(', ');
+              template.positive_suffix || ''
+            ].filter(p => p).join(', ');
 
             fs.appendFileSync(debugLogPath, `Wrapping chunk ${index + 1}: "${trimmedChunk}" -> "${wrappedChunk}"\n`);
             fs.appendFileSync(debugLogPath, `Before replacement: "${processedPrompt}"\n`);
@@ -182,10 +176,10 @@ export class PromptHandler {
     } else {
       // No Regional Prompter syntax - standard processing
       const parts = [
-        template.positive_prefix,
+        template.positive_prefix || '',
         processedPrompt,
-        template.positive_suffix
-      ].filter(p => p?.trim());
+        template.positive_suffix || ''
+      ].filter(p => p);
       processedPrompt = parts.join(', ');
     }
 
