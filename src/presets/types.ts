@@ -26,6 +26,7 @@ export interface Preset {
  */
 export interface BaseSettings {
   // プロンプト
+  prompt_prefix?: string;
   prompt_suffix?: string;
   negative_prompt?: string;
 
