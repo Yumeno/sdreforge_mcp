@@ -46,11 +46,11 @@
   "homepage": "https://github.com/Yumeno/sdreforge_mcp#readme",
   "dependencies": {
     "@jimp/utils": "^1.6.0",
-    "@modelcontextprotocol/sdk": "^1.18.0",
-    "axios": "^1.12.1",
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "axios": "^1.20.0",
     "dotenv": "^17.2.2",
     "jimp": "^1.6.0",
-    "js-yaml": "^4.1.0",
+    "js-yaml": "^4.3.2",
     "png-chunk-text": "^1.0.0",
     "png-chunks-encode": "^1.0.0",
     "png-chunks-extract": "^1.0.0"
