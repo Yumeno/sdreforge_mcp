@@ -8,7 +8,7 @@ SD WebUI Reforge MCP サーバーの開発者向けガイドです。新機能�
 
 ### 必要な環境
 
-- **Node.js** 18+
+- **Node.js** 22.23.4+ / 24.22.1+ / 26.12.1+（`package.json` の `engines.node` 参照）
 - **TypeScript** 5.9+
 - **SD WebUI Reforge** (API モード起動)
 - **Claude Code** (MCP サポート)

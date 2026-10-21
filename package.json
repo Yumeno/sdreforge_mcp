@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "MCP server for SD WebUI Reforge integration with Claude Code",
   "main": "dist/index.js",
+  "engines": {
+    "node": "^22.23.4 || ^24.22.1 || >=26.12.1"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsx watch src/index.ts",
