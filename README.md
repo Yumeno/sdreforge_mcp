@@ -285,7 +285,8 @@ npm run migrate:presets:dry-run          # 変更内容のプレビュー（実�
 npm run build                           # TypeScriptビルド
 npm run dev                             # 開発モード（ファイル監視）
 npm start                              # 本番モード起動
-npm test                               # テスト実行
+npm test                               # テスト実行（統合テストを含む）
+npm run test:unit                      # ユニットテストのみ（SD WebUI 不要）
 npm run test:watch                     # テスト監視モード
 npm run test:coverage                  # カバレッジ付きテスト
 npm run lint                           # ESLintによるコード検査

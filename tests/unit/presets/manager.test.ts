@@ -15,6 +15,9 @@ jest.mock('js-yaml');
 const mockedFs = fs as jest.Mocked<typeof fs>;
 const mockedYaml = yaml as jest.Mocked<typeof yaml>;
 
+// 本番では mcp-server.ts の読み込み時に設定される(fs はモック済みなので実際には書き込まれない)
+globalThis.mcpDir = '/mock-mcp-dir';
+
 describe('PresetManager', () => {
   let manager: PresetManager;
 
@@ -78,7 +81,7 @@ extensions:
 
       expect(preset.name).toBe('txt2img_animagine_base');
       expect(preset.type).toBe('txt2img');
-      expect(preset.base_settings.steps).toBe(20);
+      expect(preset.base_settings?.steps).toBe(20);
       expect(preset.extensions?.adetailer?.enabled).toBe(true);
     });
 
@@ -231,7 +234,7 @@ extensions:
         name: 'test',
         type: 'txt2img' as const,
         base_settings: {
-          prompt_suffix: ', masterpiece',
+          prompt_suffix: 'masterpiece',
           negative_prompt: 'low quality',
           steps: 20,
           cfg_scale: 7.0,
@@ -245,7 +248,7 @@ extensions:
         extensions: {
           adetailer: {
             enabled: true,
-            models: ['face_yolov8n.pt']
+            models: [{ model: 'face_yolov8n.pt' }]
           }
         }
       };
@@ -257,6 +260,7 @@ extensions:
       expect(payload.steps).toBe(20);
       expect(payload.alwayson_scripts).toBeDefined();
       expect(payload.alwayson_scripts.ADetailer).toBeDefined();
+      expect(payload.alwayson_scripts.ADetailer.args[2].ad_model).toBe('face_yolov8n.pt');
     });
 
     it('should handle ControlNet in preset', () => {

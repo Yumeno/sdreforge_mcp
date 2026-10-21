@@ -282,7 +282,7 @@ describe('MCPServer', () => {
     it('should handle unsupported preset types', async () => {
       const mockPreset = {
         name: 'utility_preset',
-        type: 'png-info' as const,
+        type: 'nonexistent-type' as any,
         settings: {}
       };
 

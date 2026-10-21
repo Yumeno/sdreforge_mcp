@@ -636,8 +636,11 @@ private cleanNullValues(obj: any): any {
 #### 単体テスト
 
 ```bash
-# 全テスト実行
+# 全テスト実行（統合テストを含む）
 npm test
+
+# ユニットテストのみ（SD WebUI 不要）
+npm run test:unit
 
 # ウォッチモード
 npm run test:watch
