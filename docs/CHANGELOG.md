@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Security
+- **Issue #29**: 依存パッケージを更新し、既知の脆弱性を解消
+  - `npm audit fix` を適用(本番依存は `npm audit --omit=dev` で 0 件)
+  - 直接依存の下限を引き上げ: `@modelcontextprotocol/sdk` ^1.32.1 / `axios` ^1.20.0 / `js-yaml` ^4.3.2
+
 ### Fixed
 - **Issue #30**: ユニットテストが型チェックで全件失敗する問題を修正
   - devDependencies に `@types/jest` を追加
