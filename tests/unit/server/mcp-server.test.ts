@@ -14,6 +14,9 @@ import {
   CallToolResult,
   ListToolsResult
 } from '@modelcontextprotocol/sdk/types.js';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 
 // モックの設定
 jest.mock('@modelcontextprotocol/sdk/server/index.js');
@@ -26,6 +29,18 @@ describe('MCPServer', () => {
   let mockServer: jest.Mocked<Server>;
   let mockApiClient: jest.Mocked<SDWebUIClient>;
   let mockToolGenerator: jest.Mocked<ToolGenerator>;
+  let tmpCwd: string;
+
+  // 生成画像は process.cwd()/output に保存されるため、テスト中は一時ディレクトリに向ける
+  beforeAll(() => {
+    tmpCwd = fs.mkdtempSync(path.join(os.tmpdir(), 'sdreforge-mcp-test-'));
+    jest.spyOn(process, 'cwd').mockReturnValue(tmpCwd);
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+    fs.rmSync(tmpCwd, { recursive: true, force: true });
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();

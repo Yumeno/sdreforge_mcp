@@ -14,6 +14,8 @@
  * Variable substitution should be careful not to break these patterns
  */
 
+import { getMcpDir } from '../mcp-dir';
+
 export class PromptHandler {
   /**
    * Merge user prompt with template while preserving prompt syntax
@@ -108,7 +110,7 @@ export class PromptHandler {
       // Debug log chunk extraction
       const fs = require('fs');
       const path = require('path');
-      const debugLogPath = path.join(globalThis.mcpDir, 'rp-debug.log');
+      const debugLogPath = path.join(getMcpDir(), 'rp-debug.log');
       fs.appendFileSync(debugLogPath, `Split result: ${JSON.stringify(splitResult)}\n`);
       fs.appendFileSync(debugLogPath, `Filtered chunks: ${JSON.stringify(chunks)}\n`);
 
@@ -136,7 +138,7 @@ export class PromptHandler {
         // Debug: Enhanced condition analysis
         const fs = require('fs');
         const path = require('path');
-        const debugLogPath = path.join(globalThis.mcpDir, 'rp-debug.log');
+        const debugLogPath = path.join(getMcpDir(), 'rp-debug.log');
 
         // Log all condition values for debugging
         const hasAddcomm = userPrompt.includes('ADDCOMM');

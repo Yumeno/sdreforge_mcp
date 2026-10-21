@@ -642,6 +642,9 @@ npm test
 # ユニットテストのみ（SD WebUI 不要）
 npm run test:unit
 
+# 統合テストのみ（接続テストは SD WebUI が必要）
+npm run test:integration
+
 # ウォッチモード
 npm run test:watch
 

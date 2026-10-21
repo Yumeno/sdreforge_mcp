@@ -8,6 +8,18 @@
   - 直接依存の下限を引き上げ: `@modelcontextprotocol/sdk` ^1.32.1 / `axios` ^1.20.0 / `js-yaml` ^4.3.2
 
 ### Fixed
+- **Issue #33**: MCPサーバー起動時に stdout へ JSON-RPC 以外の出力が混入する問題を修正
+  - dotenv のログを抑止（`quiet: true`）、`DEBUG=true` 時のデバッグ出力を stderr に変更
+- **Issue #34**: MCP_DIR の解決を `src/mcp-dir.ts` の `getMcpDir()` に切り出し、`globalThis.mcpDir` を廃止
+  - `PresetManager` などを mcp-server.ts を経由せずに使っても動作するように
+  - プリセットディレクトリを読めない場合は stderr にエラーを出力
+- **Issue #35**: 結合テストを現在のテンプレート構成に合わせて更新
+  - `test-all-presets.test.ts` を `preset-templates.test.ts` に置き換え（全テンプレートを生成して検証。SD WebUI 不要）
+  - 参照先が存在しない `preset-test.ts` / `full-template-test.ts` を削除
+  - `npm run test:integration` を追加し、README の手順を修正
+- **Issue #36**: ユニットテストがリポジトリ直下の `output/` にファイルを書き出す問題を修正
+  - `output/` を `.gitignore` に追加
+  - mcp-server.test の実行中は `process.cwd()` を一時ディレクトリに向ける
 - **Issue #30**: ユニットテストが型チェックで全件失敗する問題を修正
   - devDependencies に `@types/jest` を追加
   - 現行の型定義・プロンプト結合仕様・対応プリセット種別に合わせて古くなったテストを修正

@@ -287,6 +287,7 @@ npm run dev                             # 開発モード（ファイル監視�
 npm start                              # 本番モード起動
 npm test                               # テスト実行（統合テストを含む）
 npm run test:unit                      # ユニットテストのみ（SD WebUI 不要）
+npm run test:integration               # 統合テストのみ（接続テストは SD WebUI が必要）
 npm run test:watch                     # テスト監視モード
 npm run test:coverage                  # カバレッジ付きテスト
 npm run lint                           # ESLintによるコード検査
@@ -908,14 +909,16 @@ const result = await client.txt2img(payload);
 ### 統合テスト実行
 
 ```bash
-# APIサーバー接続テスト
-npm run test:integration -- api-connection
+# 統合テストをすべて実行
+npm run test:integration
 
-# プリセットテスト
-npm run test:integration -- preset-test
+# プリセットテンプレート検証（SD WebUI 不要）
+# preset-templates/ の全テンプレートを .env.sample の値で一時ディレクトリに生成し、読み込み・ツール生成を検証
+npx jest tests/integration/preset-templates
 
-# フルテンプレート検証
-npm run test:integration -- full-template
+# APIサーバー接続テスト（SD WebUI の起動が必要）
+# 接続先は環境変数 SD_WEBUI_URL（未設定時は http://localhost:7860）。テストは .env を読み込みません
+npx jest tests/integration/api-connection
 ```
 
 ## 📁 プロジェクト構造

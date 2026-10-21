@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { Preset, Extensions } from './types';
+import { getMcpDir } from '../mcp-dir';
 // Payload types available for future use
 // import { Txt2ImgPayload, Img2ImgPayload } from '../api/types';
 import { PromptHandler } from './prompt-handler';
@@ -48,7 +49,7 @@ export class PresetManager {
 
     try {
       // Write debug to file for debugging
-      const logPath = path.join(globalThis.mcpDir, 'mcp-debug.log');
+      const logPath = path.join(getMcpDir(), 'mcp-debug.log');
       const debugLog = `[DEBUG ${new Date().toISOString()}] Loading presets from: ${this.presetsDir}\n`;
       fs.appendFileSync(logPath, debugLog);
       const files = fs.readdirSync(this.presetsDir);
@@ -71,18 +72,19 @@ export class PresetManager {
         }
 
         try {
-          const logPath2 = path.join(globalThis.mcpDir, 'mcp-debug.log');
+          const logPath2 = path.join(getMcpDir(), 'mcp-debug.log');
           fs.appendFileSync(logPath2, `[DEBUG ${new Date().toISOString()}] Loading preset: ${file}\n`);
           const preset = this.loadPreset(file);
           fs.appendFileSync(logPath2, `[DEBUG ${new Date().toISOString()}] Successfully loaded preset: ${preset.name} (type: ${preset.type})\n`);
           presets.push(preset);
         } catch (error: any) {
-          const logPath2 = path.join(globalThis.mcpDir, 'mcp-debug.log');
+          const logPath2 = path.join(getMcpDir(), 'mcp-debug.log');
           fs.appendFileSync(logPath2, `[ERROR ${new Date().toISOString()}] Failed to load preset ${file}: ${error.message}\n`);
         }
       }
-    } catch {
-      // Failed to read presets directory
+    } catch (error: any) {
+      // Failed to read presets directory (stderr: stdout is reserved for MCP JSON-RPC)
+      console.error(`Failed to read presets directory ${this.presetsDir}: ${error.message}`);
     }
 
     return presets;
@@ -153,7 +155,7 @@ export class PresetManager {
 
     // Apply prompt template with complete config aggregation
     // Check base_settings for prompt_suffix/prefix (actual preset structure) or prompt_template (legacy/future support)
-    const debugLogPath = path.join(globalThis.mcpDir, 'mcp-tool-execution.log');
+    const debugLogPath = path.join(getMcpDir(), 'mcp-tool-execution.log');
     fs.appendFileSync(debugLogPath, `[PAYLOAD_DEBUG] userParams: ${JSON.stringify(userParams, null, 2)}\n`);
     fs.appendFileSync(debugLogPath, `[PAYLOAD_DEBUG] userParams.prompt: ${userParams.prompt}\n`);
     fs.appendFileSync(debugLogPath, `[PAYLOAD_DEBUG] Has prompt: ${!!userParams.prompt}\n`);
@@ -168,7 +170,7 @@ export class PresetManager {
       };
 
       // DEBUG: Log template resolution
-      const debugLogPath = path.join(globalThis.mcpDir, 'mcp-tool-execution.log');
+      const debugLogPath = path.join(getMcpDir(), 'mcp-tool-execution.log');
       fs.appendFileSync(debugLogPath, `[PRESET_DEBUG] preset.name: ${preset.name}\n`);
       fs.appendFileSync(debugLogPath, `[PRESET_DEBUG] preset.base_settings: ${JSON.stringify(preset.base_settings, null, 2)}\n`);
       fs.appendFileSync(debugLogPath, `[PRESET_DEBUG] preset.base_settings?.prompt_suffix: ${preset.base_settings?.prompt_suffix}\n`);

@@ -15,40 +15,20 @@ import { ServerConfig, ToolExecutionResult } from './types';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
-
-// Global type declaration for mcpDir
-declare global {
-  var mcpDir: string;
-}
+import { getMcpDir } from '../mcp-dir';
 
 // Load environment variables BEFORE class initialization
-// MCP_DIR環境変数を優先的に使用し、フォールバック処理も実装
-const mcpDir = process.env.MCP_DIR || (() => {
-  // MCP_DIRが未設定の場合の自動検出
-  const cwd = process.cwd();
-  const pathSegments = cwd.split(path.sep);
-  const sdreforgeIndex = pathSegments.indexOf('sdreforge_mcp');
-
-  if (sdreforgeIndex !== -1) {
-    return pathSegments.slice(0, sdreforgeIndex + 1).join(path.sep);
-  }
-
-  // 最終的なフォールバック（ビルド済みの場合）
-  return path.resolve(__dirname, '../..');
-})();
-
-// Make mcpDir globally accessible
-(globalThis as any).mcpDir = mcpDir;
+const mcpDir = getMcpDir();
 
 // .envファイルの読み込み
 const envPath = path.join(mcpDir, '.env');
 if (fs.existsSync(envPath)) {
-  dotenv.config({ path: envPath });
+  dotenv.config({ path: envPath, quiet: true });
 }
 
 const envLocalPath = path.join(mcpDir, '.env.local');
 if (fs.existsSync(envLocalPath)) {
-  dotenv.config({ path: envLocalPath });
+  dotenv.config({ path: envLocalPath, quiet: true });
 }
 const { Jimp } = require('jimp');
 const { intToRGBA, rgbaToInt } = require('@jimp/utils');
@@ -149,7 +129,7 @@ export class MCPServer {
    * Combine multiple black & white masks into a single colored mask for Regional Prompter
    */
   async combineMasks(maskPaths: string[]): Promise<string> {
-    const debugLogPath = path.join(globalThis.mcpDir, 'mcp-tool-execution.log');
+    const debugLogPath = path.join(mcpDir, 'mcp-tool-execution.log');
 
     if (!maskPaths || maskPaths.length === 0) {
       throw new Error('No mask paths provided');
@@ -259,7 +239,7 @@ export class MCPServer {
       }
 
       // Save combined mask for debugging
-      const outputDir = path.join(globalThis.mcpDir, 'output');
+      const outputDir = path.join(mcpDir, 'output');
       if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });
       }
@@ -284,7 +264,7 @@ export class MCPServer {
   async executeTool(toolName: string, params: any): Promise<ToolExecutionResult> {
     try {
       // Debug: Log all received parameters to file
-      const debugLogPath = path.join(globalThis.mcpDir, 'mcp-tool-execution.log');
+      const debugLogPath = path.join(mcpDir, 'mcp-tool-execution.log');
       const logEntry = `[${new Date().toISOString()}] Tool: ${toolName}\nParams: ${JSON.stringify(params, null, 2)}\n---\n`;
       fs.appendFileSync(debugLogPath, logEntry);
 
@@ -310,7 +290,7 @@ export class MCPServer {
       // }
 
       // Generate payload from preset and user params
-      const debugPath = path.join(globalThis.mcpDir, 'mcp-tool-execution.log');
+      const debugPath = path.join(mcpDir, 'mcp-tool-execution.log');
       fs.appendFileSync(debugPath, `[MCP_DEBUG] About to call presetToPayload with preset.name: ${preset.name}\n`);
       fs.appendFileSync(debugPath, `[MCP_DEBUG] User params: ${JSON.stringify(params, null, 2)}\n`);
 
@@ -829,7 +809,7 @@ export class MCPServer {
       switch (preset.type) {
         case 'txt2img':
           // Comprehensive payload logging before API call
-          const payloadLogPath = path.join(globalThis.mcpDir, 'payload-debug.log');
+          const payloadLogPath = path.join(mcpDir, 'payload-debug.log');
           const timestamp = new Date().toISOString();
           fs.appendFileSync(payloadLogPath, `\n========== txt2img API Call at ${timestamp} ==========\n`);
           fs.appendFileSync(payloadLogPath, `Preset: ${presetName}\n`);

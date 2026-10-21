@@ -15,9 +15,6 @@ jest.mock('js-yaml');
 const mockedFs = fs as jest.Mocked<typeof fs>;
 const mockedYaml = yaml as jest.Mocked<typeof yaml>;
 
-// 本番では mcp-server.ts の読み込み時に設定される(fs はモック済みなので実際には書き込まれない)
-globalThis.mcpDir = '/mock-mcp-dir';
-
 describe('PresetManager', () => {
   let manager: PresetManager;
 
