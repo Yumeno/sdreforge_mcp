@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- **Issue #27**: サポートするNode.jsバージョンを明示
+  - `package.json` に `engines.node: "^22.23.4 || ^24.22.1 || >=26.12.1"` を追加（2026-10-21 Node.js セキュリティリリース適用版以降）
+  - README / DEVELOPER_GUIDE の前提条件を「18以上」から上記に更新
+
 ## [0.1.2] - 2025-09-26
 
 ### Fixed

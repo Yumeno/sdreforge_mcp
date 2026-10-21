@@ -54,7 +54,12 @@ MCP (Model Context Protocol) server for SD WebUI Reforge integration with Claude
 ## 🛠️ インストール
 
 ### 前提条件
-- **Node.js**: 18以上
+- **Node.js**: 以下のいずれか（2026-10-21 セキュリティリリース適用版以降）
+  - 22.x: **22.23.4** 以上
+  - 24.x: **24.22.1** 以上
+  - 26.x 以降: **26.12.1** 以上
+  - Node.js 20 以前・奇数系（23.x / 25.x）はサポート対象外です
+  - 確認方法: `node --version`。`package.json` の `engines.node` にも同じ条件を記載しています（npm は条件外のバージョンで `EBADENGINE` 警告を出します）
 - **SD WebUI Reforge**: APIモード対応版（`--api --listen`フラグ必須）
 
 ### 1. リポジトリクローン
