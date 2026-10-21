@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Fixed
+- **Issue #30**: ユニットテストが型チェックで全件失敗する問題を修正
+  - devDependencies に `@types/jest` を追加
+  - 現行の型定義・プロンプト結合仕様・対応プリセット種別に合わせて古くなったテストを修正
+  - `npm run test:unit`（ユニットテストのみ実行）を追加
+
 ### Changed
 - **Issue #27**: サポートするNode.jsバージョンを明示
   - `package.json` に `engines.node: "^22.23.4 || ^24.22.1 || >=26.12.1"` を追加（2026-10-21 Node.js セキュリティリリース適用版以降）

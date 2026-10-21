@@ -11,6 +11,7 @@
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "test": "jest",
+    "test:unit": "jest tests/unit",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "lint": "eslint src/**/*.ts",
@@ -50,11 +51,12 @@
     "dotenv": "^17.2.2",
     "jimp": "^1.6.0",
     "js-yaml": "^4.1.0",
-    "png-chunks-extract": "^1.0.0",
+    "png-chunk-text": "^1.0.0",
     "png-chunks-encode": "^1.0.0",
-    "png-chunk-text": "^1.0.0"
+    "png-chunks-extract": "^1.0.0"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.3.3",
     "@typescript-eslint/eslint-plugin": "^8.43.0",
