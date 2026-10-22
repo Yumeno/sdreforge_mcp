@@ -287,6 +287,7 @@ npm run dev                             # 開発モード（ファイル監視�
 npm start                              # 本番モード起動
 npm test                               # テスト実行（統合テストを含む）
 npm run test:unit                      # ユニットテストのみ（SD WebUI 不要）
+npm run test:integration               # 統合テストのみ（接続テストは SD WebUI が必要）
 npm run test:watch                     # テスト監視モード
 npm run test:coverage                  # カバレッジ付きテスト
 npm run lint                           # ESLintによるコード検査
@@ -585,7 +586,7 @@ sdreforge_txt2img_dynamic(
 
 ## ⚙️ 設定
 
-### 環境変数 (.env.local)
+### 環境変数 (.env)
 
 ```env
 # SD WebUI Reforge API Endpoint
@@ -598,6 +599,9 @@ MCP_SERVER_VERSION=0.1.0
 # Debug Mode
 DEBUG=false
 ```
+
+自分の環境だけで一部の値を変えたい場合は、`.env.local` に書くと `.env` より優先されます（どちらも git 管理外）。
+優先順位: 実際の環境変数（MCP クライアント設定の `env` など） > `.env.local` > `.env`
 
 ### SD WebUI Reforge起動設定
 
@@ -908,14 +912,16 @@ const result = await client.txt2img(payload);
 ### 統合テスト実行
 
 ```bash
-# APIサーバー接続テスト
-npm run test:integration -- api-connection
+# 統合テストをすべて実行
+npm run test:integration
 
-# プリセットテスト
-npm run test:integration -- preset-test
+# プリセットテンプレート検証（SD WebUI 不要）
+# preset-templates/ の全テンプレートを .env.sample の値で一時ディレクトリに生成し、読み込み・ツール生成を検証
+npx jest tests/integration/preset-templates
 
-# フルテンプレート検証
-npm run test:integration -- full-template
+# APIサーバー接続テスト（SD WebUI の起動が必要）
+# 接続先は環境変数 SD_WEBUI_URL（未設定時は http://localhost:7860）。テストは .env を読み込みません
+npx jest tests/integration/api-connection
 ```
 
 ## 📁 プロジェクト構造
@@ -967,8 +973,8 @@ curl http://192.168.91.2:7863/sdapi/v1/options
 # 2. --apiフラグが有効か確認
 # launch.pyの起動コマンドに --api が含まれているか
 
-# 3. .env.localのURLを確認
-cat .env.local
+# 3. .env / .env.local の SD_WEBUI_URL を確認（.env.local が優先）
+grep SD_WEBUI_URL .env .env.local
 ```
 
 ### 422エラーが発生する

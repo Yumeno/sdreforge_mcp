@@ -27,6 +27,9 @@ npm-debug.log*
 *.tmp
 *.temp
 
+# Generated images
+output/
+
 # Generated presets (Option A: templates-only repository)
 presets/*.yaml
 !preset-templates/*.template

@@ -361,7 +361,7 @@ type mcp-debug.log
 
 3. **環境変数**
    ```bash
-   # .env.local または環境変数確認
+   # .env / .env.local または環境変数を確認
    echo $SD_WEBUI_URL
    ```
 
@@ -475,7 +475,7 @@ npm run migrate:presets               # 非推奨プリセットを整理
 
 ### 設定ファイル
 - `claude_desktop_config.json` - Claude Code MCP 設定
-- `.env.local` - 環境変数
+- `.env` / `.env.local` - 環境変数（`.env.local` が優先）
 - `package.json` - ビルド・開発スクリプト
 
 ## 🔗 関連ドキュメント

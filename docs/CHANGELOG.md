@@ -8,12 +8,28 @@
   - 直接依存の下限を引き上げ: `@modelcontextprotocol/sdk` ^1.32.1 / `axios` ^1.20.0 / `js-yaml` ^4.3.2
 
 ### Fixed
+- **Issue #33**: MCPサーバー起動時に stdout へ JSON-RPC 以外の出力が混入する問題を修正
+  - dotenv のログを抑止（`quiet: true`）、`DEBUG=true` 時のデバッグ出力を stderr に変更
+- **Issue #34**: MCP_DIR の解決を `src/mcp-dir.ts` の `getMcpDir()` に切り出し、`globalThis.mcpDir` を廃止
+  - `PresetManager` などを mcp-server.ts を経由せずに使っても動作するように
+  - プリセットディレクトリを読めない場合は stderr にエラーを出力
+- **Issue #35**: 結合テストを現在のテンプレート構成に合わせて更新
+  - `test-all-presets.test.ts` を `preset-templates.test.ts` に置き換え（全テンプレートを生成して検証。SD WebUI 不要）
+  - 参照先が存在しない `preset-test.ts` / `full-template-test.ts` を削除
+  - `npm run test:integration` を追加し、README の手順を修正
+- **Issue #36**: ユニットテストがリポジトリ直下の `output/` にファイルを書き出す問題を修正
+  - `output/` を `.gitignore` に追加
+  - mcp-server.test の実行中は `process.cwd()` を一時ディレクトリに向ける
 - **Issue #30**: ユニットテストが型チェックで全件失敗する問題を修正
   - devDependencies に `@types/jest` を追加
   - 現行の型定義・プロンプト結合仕様・対応プリセット種別に合わせて古くなったテストを修正
   - `npm run test:unit`（ユニットテストのみ実行）を追加
 
 ### Changed
+- **`.env.local` を `.env` より優先するように変更**（一般的な慣習に合わせる）
+  - 優先順位: 実際の環境変数 > `.env.local` > `.env`
+  - 従来は MCP サーバーでは `.env` が優先され、`setup:presets` では `.env` があると `.env.local` が読まれていなかった
+  - ドキュメントに残っていた `.env.local` 前提の古い手順を修正
 - **Issue #27**: サポートするNode.jsバージョンを明示
   - `package.json` に `engines.node: "^22.23.4 || ^24.22.1 || >=26.12.1"` を追加（2026-10-21 Node.js セキュリティリリース適用版以降）
   - README / DEVELOPER_GUIDE の前提条件を「18以上」から上記に更新

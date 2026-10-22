@@ -134,10 +134,10 @@ export class SDWebUIClient {
     try {
       const cleanedPayload = this.cleanPayload(payload);
 
-      // Debug log
+      // Debug log (stderr: stdout is reserved for MCP JSON-RPC)
       if (process.env.DEBUG === 'true' && endpoint.includes('txt2img')) {
-        console.log('Sending payload to', endpoint);
-        console.log('Override settings in payload:', cleanedPayload.override_settings);
+        console.error('Sending payload to', endpoint);
+        console.error('Override settings in payload:', cleanedPayload.override_settings);
       }
 
       const response = await this.client.post<T>(endpoint, cleanedPayload);

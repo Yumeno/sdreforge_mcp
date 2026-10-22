@@ -18,7 +18,7 @@ export class TemplateProcessor {
    * Load configuration from .env file
    */
   private loadConfig(envFilePath?: string): void {
-    // Load from specified file or default .env locations
+    // Load from specified file, or .env then .env.local (.env.local overrides .env)
     const envPaths = envFilePath ? [envFilePath] : [
       '.env',
       '.env.local'
@@ -26,12 +26,8 @@ export class TemplateProcessor {
 
     for (const envPath of envPaths) {
       if (fs.existsSync(envPath)) {
-        const result = dotenv.config({ path: envPath });
-        if (result.parsed) {
-          Object.assign(this.config, result.parsed);
-        }
+        Object.assign(this.config, dotenv.parse(fs.readFileSync(envPath)));
         console.log(`📄 Loaded configuration from: ${envPath}`);
-        break;
       }
     }
 

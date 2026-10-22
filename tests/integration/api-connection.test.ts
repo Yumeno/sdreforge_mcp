@@ -9,7 +9,7 @@ describe('API Connection Integration Test', () => {
   let client: SDWebUIClient;
 
   beforeAll(() => {
-    // .env.localから実際のURLを読み込む
+    // 接続先は環境変数 SD_WEBUI_URL（未設定時は http://localhost:7860）
     client = new SDWebUIClient();
     console.log(`Testing connection to: ${client.baseUrl}`);
   });
