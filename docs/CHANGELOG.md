@@ -26,6 +26,10 @@
   - `npm run test:unit`（ユニットテストのみ実行）を追加
 
 ### Changed
+- **`.env.local` を `.env` より優先するように変更**（一般的な慣習に合わせる）
+  - 優先順位: 実際の環境変数 > `.env.local` > `.env`
+  - 従来は MCP サーバーでは `.env` が優先され、`setup:presets` では `.env` があると `.env.local` が読まれていなかった
+  - ドキュメントに残っていた `.env.local` 前提の古い手順を修正
 - **Issue #27**: サポートするNode.jsバージョンを明示
   - `package.json` に `engines.node: "^22.23.4 || ^24.22.1 || >=26.12.1"` を追加（2026-10-21 Node.js セキュリティリリース適用版以降）
   - README / DEVELOPER_GUIDE の前提条件を「18以上」から上記に更新

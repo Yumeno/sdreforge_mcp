@@ -6,7 +6,7 @@
 
 ### 基本エンドポイント
 - **ベースURL**: `http://localhost:7860` (デフォルト)
-- **カスタムURL**: `.env.local`で設定可能
+- **カスタムURL**: `.env`（または `.env.local`）の `SD_WEBUI_URL` で設定可能
 - **APIプレフィックス**: `/sdapi/v1/`
 
 ### 主要エンドポイント一覧

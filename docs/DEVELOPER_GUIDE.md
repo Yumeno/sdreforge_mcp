@@ -24,8 +24,8 @@ cd sdreforge_mcp
 npm install
 
 # 環境設定
-cp .env.example .env.local
-# .env.local を編集してSD WebUI URLを設定
+cp .env.sample .env
+# .env を編集してSD WebUI URLを設定（個人用の上書きは .env.local。.env より優先）
 
 # 初回ビルド
 npm run build

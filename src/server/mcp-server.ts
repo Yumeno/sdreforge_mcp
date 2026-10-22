@@ -21,14 +21,16 @@ import { getMcpDir } from '../mcp-dir';
 const mcpDir = getMcpDir();
 
 // .envファイルの読み込み
-const envPath = path.join(mcpDir, '.env');
-if (fs.existsSync(envPath)) {
-  dotenv.config({ path: envPath, quiet: true });
-}
-
+// 優先順位: 実際の環境変数 > .env.local > .env
+// dotenv は既に設定済みの値を上書きしないため、優先する .env.local を先に読み込む
 const envLocalPath = path.join(mcpDir, '.env.local');
 if (fs.existsSync(envLocalPath)) {
   dotenv.config({ path: envLocalPath, quiet: true });
+}
+
+const envPath = path.join(mcpDir, '.env');
+if (fs.existsSync(envPath)) {
+  dotenv.config({ path: envPath, quiet: true });
 }
 const { Jimp } = require('jimp');
 const { intToRGBA, rgbaToInt } = require('@jimp/utils');

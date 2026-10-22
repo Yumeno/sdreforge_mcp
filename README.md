@@ -586,7 +586,7 @@ sdreforge_txt2img_dynamic(
 
 ## ⚙️ 設定
 
-### 環境変数 (.env.local)
+### 環境変数 (.env)
 
 ```env
 # SD WebUI Reforge API Endpoint
@@ -599,6 +599,9 @@ MCP_SERVER_VERSION=0.1.0
 # Debug Mode
 DEBUG=false
 ```
+
+自分の環境だけで一部の値を変えたい場合は、`.env.local` に書くと `.env` より優先されます（どちらも git 管理外）。
+優先順位: 実際の環境変数（MCP クライアント設定の `env` など） > `.env.local` > `.env`
 
 ### SD WebUI Reforge起動設定
 
@@ -970,8 +973,8 @@ curl http://192.168.91.2:7863/sdapi/v1/options
 # 2. --apiフラグが有効か確認
 # launch.pyの起動コマンドに --api が含まれているか
 
-# 3. .env.localのURLを確認
-cat .env.local
+# 3. .env / .env.local の SD_WEBUI_URL を確認（.env.local が優先）
+grep SD_WEBUI_URL .env .env.local
 ```
 
 ### 422エラーが発生する
